@@ -1,12 +1,12 @@
 <div align="center">
 
-**English** · [Français](README.fr.md) · [Español](README.es.md)
+**English** · [Русский](README.ru.md)
 
 <img src="docs/icon.png" alt="" width="88">
 
 # Fortnite Chest Counter
 
-[![version](https://img.shields.io/github/v/release/LED-N/Fortnite-ChestCounter?style=flat-square&label=version&color=e8b04b)](../../releases/latest) [![downloads](https://img.shields.io/github/downloads/LED-N/Fortnite-ChestCounter/total?style=flat-square&label=downloads&color=e8b04b)](../../releases) ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-3a7bd5?style=flat-square) [![license](https://img.shields.io/github/license/LED-N/Fortnite-ChestCounter?style=flat-square&label=license&color=555)](LICENSE)
+[![version](https://img.shields.io/github/v/release/RGB-Outl4w/Fortnite-ChestCounter?style=flat-square&label=version&color=e8b04b)](../../releases/latest) [![downloads](https://img.shields.io/github/downloads/RGB-Outl4w/Fortnite-ChestCounter/total?style=flat-square&label=downloads&color=e8b04b)](../../releases) ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-3a7bd5?style=flat-square) [![license](https://img.shields.io/github/license/RGB-Outl4w/Fortnite-ChestCounter?style=flat-square&label=license&color=555)](LICENSE)
 
 **Counts every chest you open in Fortnite, match after match, with an overlay that blends into the game.**
 
@@ -43,7 +43,7 @@ Because Fortnite only writes the replay's decryption key when the match ends, ch
 2. Turn on replays in Fortnite (see above).
 3. Run `ChestCounter.exe`.
    > Windows may show *"Windows protected your PC"* because the exe is not signed. Click *More info → Run anyway*.
-4. A short setup (arrow keys + Enter) asks for your **language** (French / English / Spanish), checks your **replays folder**, offers to count the **replays already on your PC**, then asks whether you want the **in-game overlay** and whether the counter should **open automatically with Fortnite**.
+4. A short setup (arrow keys + Enter) asks for your **language** (English / Russian), checks your **replays folder**, offers to count the **replays already on your PC**, then asks whether you want the **in-game overlay** and whether the counter should **open automatically with Fortnite**.
 
 <p align="center"><img src="docs/setup-en.png" alt="First launch setup" width="760"></p>
 
@@ -70,7 +70,7 @@ Everything works with the **arrow keys** and **Enter**, with no key to remember.
 
 | Setting | What it does |
 |---|---|
-| Language | French, English or Spanish. |
+| Language | English or Russian. |
 | In-game overlay | On or off (no window and no shortcut: everything stays in the report). |
 | Overlay style, size, opacity | HUD or classic, 70 to 175%, 100 to 30% opacity. Applied at once. |
 | Minimize to the notification area | Yes: minimizing the counter puts it next to the clock instead of the taskbar. |
@@ -161,7 +161,7 @@ To start over: **Settings → Start the setup again** (your history is kept), or
 ## Command line options
 
 ```
-ChestCounter.exe --lang <fr|en|es>   change the language
+ChestCounter.exe --lang <en|ru>      change the language
 ChestCounter.exe --demos <folder>    another replays folder
 ChestCounter.exe --data <folder>     another data folder
 ChestCounter.exe --once              analyze the finished replays, then quit
@@ -171,10 +171,10 @@ ChestCounter.exe --overlay-preview <file.png>   save previews of the overlay, th
 
 ## Build it yourself
 
-Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows x64), then double-click **`build.bat`**: the exe is written to `dist\ChestCounter.exe`. The GitHub Actions workflow builds the exe on every push and attaches it to a release when a `v*` tag is pushed, with the text of [`RELEASE_NOTES.md`](RELEASE_NOTES.md) (also shown in the counter after an update).
+Install the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (Windows x64), then double-click **`build.bat`**: the exe is written to `dist\ChestCounter.exe`. Tests: `dotnet test tests/ChestCounter.Tests`. The GitHub Actions workflow runs the tests and builds the exe on every push, and attaches it to a release when a `v*` tag is pushed, with the text of [`RELEASE_NOTES.md`](RELEASE_NOTES.md) (also shown in the counter after an update).
 
 ## License and credits
 
-[MIT](LICENSE). Replay reading is based on [FortniteReplayDecompressor](https://github.com/Shiqan/FortniteReplayDecompressor) by Shiqan (MIT), slightly modified: see [`lib/PATCHES.md`](lib/PATCHES.md). The report headings use the [Pirata One](https://fonts.google.com/specimen/Pirata+One) font (SIL Open Font License, [`src/ChestCounter/Assets/PirataOne-OFL.txt`](src/ChestCounter/Assets/PirataOne-OFL.txt)). Thanks to [koiseka](https://github.com/koiseka) for their counting fixes ([#6](../../pull/6)).
+[MIT](LICENSE). English + Russian fork of [LED-N/Fortnite-ChestCounter](https://github.com/LED-N/Fortnite-ChestCounter). Replay reading is based on [FortniteReplayDecompressor](https://github.com/Shiqan/FortniteReplayDecompressor) by Shiqan (MIT), slightly modified: see [`lib/PATCHES.md`](lib/PATCHES.md). The report headings use the [Pirata One](https://fonts.google.com/specimen/Pirata+One) font (SIL Open Font License, [`src/ChestCounter/Assets/PirataOne-OFL.txt`](src/ChestCounter/Assets/PirataOne-OFL.txt)). Thanks to [koiseka](https://github.com/koiseka) for their counting fixes ([#6](../../pull/6)).
 
 This project is not affiliated with, endorsed or sponsored by Epic Games. Fortnite is a trademark of Epic Games, Inc.

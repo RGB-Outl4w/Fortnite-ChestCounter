@@ -120,7 +120,7 @@ public static class Tray
         uFlags = flags,
         uCallbackMessage = WM_APP_TRAY,
         hIcon = _iconSmall != IntPtr.Zero ? _iconSmall : _iconBig,
-        szTip = L.T("Compteur de coffres Fortnite", "Fortnite Chest Counter", "Contador de cofres de Fortnite"),
+        szTip = L.T("Fortnite Chest Counter", "Счётчик сундуков Fortnite"),
         szInfo = "",
         szInfoTitle = "",
     };
@@ -140,10 +140,9 @@ public static class Tray
         {
             // Once per session: the window is not gone, it waits in the tray.
             data.uFlags |= NIF_INFO;
-            data.szInfoTitle = L.T("Compteur de coffres Fortnite", "Fortnite Chest Counter", "Contador de cofres de Fortnite");
-            data.szInfo = L.T("Le compteur continue de compter dans la zone de notification. Clique sur le coffre pour le rouvrir.",
-                "The counter keeps counting in the notification area. Click the chest to open it again.",
-                "El contador sigue contando en el área de notificación. Haz clic en el cofre para volver a abrirlo.");
+            data.szInfoTitle = L.T("Fortnite Chest Counter", "Счётчик сундуков Fortnite");
+            data.szInfo = L.T("The counter keeps counting in the notification area. Click the chest to open it again.",
+                "Счётчик продолжает считать в области уведомлений. Щёлкни по сундуку, чтобы открыть его снова.");
             data.dwInfoFlags = NIIF_USER | NIIF_LARGE_ICON;
             data.hBalloonIcon = _iconBig;
             _balloonShown = true;
@@ -206,10 +205,10 @@ public static class Tray
     private static void Menu()
     {
         var menu = CreatePopupMenu();
-        AppendMenuW(menu, MF_STRING, (UIntPtr)1, L.T("Ouvrir le compteur", "Open the counter", "Abrir el contador"));
-        AppendMenuW(menu, MF_STRING, (UIntPtr)2, L.T("Ouvrir le rapport", "Open the report", "Abrir el informe"));
+        AppendMenuW(menu, MF_STRING, (UIntPtr)1, L.T("Open the counter", "Открыть счётчик"));
+        AppendMenuW(menu, MF_STRING, (UIntPtr)2, L.T("Open the report", "Открыть отчёт"));
         AppendMenuW(menu, MF_SEPARATOR, UIntPtr.Zero, null);
-        AppendMenuW(menu, MF_STRING, (UIntPtr)3, L.T("Quitter", "Quit", "Salir"));
+        AppendMenuW(menu, MF_STRING, (UIntPtr)3, L.T("Quit", "Выйти"));
         GetCursorPos(out var pt);
         SetForegroundWindow(_hwnd); // so that the menu closes when clicking elsewhere
         var cmd = TrackPopupMenu(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, pt.X, pt.Y, 0, _hwnd, IntPtr.Zero);
