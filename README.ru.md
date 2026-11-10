@@ -6,7 +6,7 @@
 
 # Счётчик сундуков Fortnite
 
-[![version](https://img.shields.io/github/v/release/LED-N/Fortnite-ChestCounter?style=flat-square&label=version&color=e8b04b)](../../releases/latest) [![downloads](https://img.shields.io/github/downloads/LED-N/Fortnite-ChestCounter/total?style=flat-square&label=downloads&color=e8b04b)](../../releases) ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-3a7bd5?style=flat-square) [![license](https://img.shields.io/github/license/LED-N/Fortnite-ChestCounter?style=flat-square&label=license&color=555)](LICENSE)
+[![version](https://img.shields.io/github/v/release/RGB-Outl4w/Fortnite-ChestCounter?style=flat-square&label=version&color=e8b04b)](../../releases/latest) [![downloads](https://img.shields.io/github/downloads/RGB-Outl4w/Fortnite-ChestCounter/total?style=flat-square&label=downloads&color=e8b04b)](../../releases) ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011-3a7bd5?style=flat-square) [![license](https://img.shields.io/github/license/RGB-Outl4w/Fortnite-ChestCounter?style=flat-square&label=license&color=555)](LICENSE)
 
 **Считает каждый сундук, который ты открываешь в Fortnite, матч за матчем, с оверлеем, который сливается с игрой.**
 
@@ -177,6 +177,6 @@ ChestCounter.exe --overlay-preview <файл.png>   сохранить изоб�
 
 ## Лицензия и благодарности
 
-[MIT](LICENSE). Чтение повторов основано на [FortniteReplayDecompressor](https://github.com/Shiqan/FortniteReplayDecompressor) от Shiqan (MIT) с небольшими изменениями: см. [`lib/PATCHES.md`](lib/PATCHES.md). В заголовках отчёта используется шрифт [Pirata One](https://fonts.google.com/specimen/Pirata+One) (SIL Open Font License, [`src/ChestCounter/Assets/PirataOne-OFL.txt`](src/ChestCounter/Assets/PirataOne-OFL.txt)). Спасибо [koiseka](https://github.com/koiseka) за исправления подсчёта ([#6](../../pull/6)).
+[MIT](LICENSE). Англо-русский форк [LED-N/Fortnite-ChestCounter](https://github.com/LED-N/Fortnite-ChestCounter). Чтение повторов основано на [FortniteReplayDecompressor](https://github.com/Shiqan/FortniteReplayDecompressor) от Shiqan (MIT) с небольшими изменениями: см. [`lib/PATCHES.md`](lib/PATCHES.md). В заголовках отчёта используется шрифт [Pirata One](https://fonts.google.com/specimen/Pirata+One) (SIL Open Font License, [`src/ChestCounter/Assets/PirataOne-OFL.txt`](src/ChestCounter/Assets/PirataOne-OFL.txt)). Спасибо [koiseka](https://github.com/koiseka) за исправления подсчёта ([#6](../../pull/6)).
 
 Этот проект не связан с Epic Games, не одобрен и не спонсируется ею. Fortnite — товарный знак Epic Games, Inc.
