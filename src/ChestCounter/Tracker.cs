@@ -27,6 +27,16 @@ public sealed class Tracker
     private readonly TrackerData _data;
     private readonly Dictionary<string, long> _lastSeenSize = new();
 
+    /// <summary>Failed attempts per replay: a failure that may not come back (file in use, timeout) is retried.</summary>
+    private readonly Dictionary<string, int> _attempts = new();
+    private const int MaxAttempts = 3;
+
+    /// <summary>A parse that timed out and has not stopped yet. The parser keeps static state: never two at once.</summary>
+    private static Thread? _orphan;
+
+    /// <summary>The previous parse is still stopping: nothing can be read right now.</summary>
+    private sealed class ParserBusyException : Exception { }
+
     public Tracker(Store store, Config config, TrackerData data)
     {
         _store = store;
@@ -83,7 +93,7 @@ public sealed class Tracker
     }
 
     /// <summary>Result of the analysis of one replay.</summary>
-    private sealed record Outcome(MatchRecord? Match = null, bool Updated = false, string? Skipped = null, string? Error = null);
+    private sealed record Outcome(MatchRecord? Match = null, bool Updated = false, string? Skipped = null, string? Error = null, bool Retry = false);
 
     /// <summary>
     /// One pass over the folder. Returns the number of new matches recorded. Several replays at once (replays left
@@ -116,7 +126,7 @@ public sealed class Tracker
 
         var batch = ready.Count >= 2;
         var profilesBefore = Profiles.List(_data).Count;
-        var bar = batch ? new ProgressBar(L.T("Analyse des replays", "Analyzing replays", "Analizando repeticiones"), ready.Count) : null;
+        var bar = batch ? new ProgressBar(L.T("Analyzing replays", "Анализ повторов"), ready.Count) : null;
         var outcomes = new List<Outcome>();
         for (var i = 0; i < ready.Count; i++)
         {
@@ -133,8 +143,8 @@ public sealed class Tracker
                 var mb = (file.Length / 1024 / 1024.0).ToString("F1", L.Culture);
                 var justEnded = DateTime.UtcNow - file.LastWriteTimeUtc < TimeSpan.FromMinutes(2);
                 Console.WriteLine(justEnded
-                    ? L.T($"[{DateTime.Now:HH:mm:ss}] Partie terminée : analyse du replay ({mb} Mo)…", $"[{DateTime.Now:HH:mm:ss}] Match over: analyzing the replay ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Partida terminada: analizando la repetición ({mb} MB)…")
-                    : L.T($"[{DateTime.Now:HH:mm:ss}] Analyse de {file.Name} ({mb} Mo)…", $"[{DateTime.Now:HH:mm:ss}] Analyzing {file.Name} ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Analizando {file.Name} ({mb} MB)…"));
+                    ? L.T($"[{DateTime.Now:HH:mm:ss}] Match over: analyzing the replay ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Матч окончен: анализирую повтор ({mb} МБ)…")
+                    : L.T($"[{DateTime.Now:HH:mm:ss}] Analyzing {file.Name} ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Анализирую {file.Name} ({mb} МБ)…"));
                 Console.ResetColor();
             }
 
@@ -214,9 +224,8 @@ public sealed class Tracker
         {
             _data.ProcessedFiles[key] = "incomplete";
             _store.SaveData(_data);
-            return new Outcome(Skipped: L.T("replay incomplet (Fortnite s'est fermé pendant la partie) : cette partie ne peut pas être comptée",
-                "incomplete replay (Fortnite closed during the match): this match cannot be counted",
-                "repetición incompleta (Fortnite se cerró durante la partida): esta partida no se puede contar"));
+            return new Outcome(Skipped: L.T("incomplete replay (Fortnite closed during the match): this match cannot be counted",
+                "неполный повтор (Fortnite закрылся во время матча): этот матч нельзя посчитать"));
         }
 
         MatchRecord record;
@@ -224,8 +233,22 @@ public sealed class Tracker
         {
             record = Analyze(file, ParseTimeout);
         }
+        catch (ParserBusyException)
+        {
+            HasPending = true;
+            return new Outcome(Retry: true);
+        }
         catch (Exception ex)
         {
+            // File in use, analysis too slow while the game loads the PC: may work next time. Only a failure that
+            // repeats is written down (a recorded error is not tried again until the analysis version changes).
+            var attempt = _attempts[key] = _attempts.GetValueOrDefault(key) + 1;
+            if (ex is IOException or UnauthorizedAccessException or TimeoutException && attempt < MaxAttempts)
+            {
+                HasPending = true;
+                return new Outcome(Retry: true);
+            }
+            _attempts.Remove(key);
             var message = (ex as AggregateException)?.InnerException?.Message ?? ex.Message;
             ErrorLog.Write($"Unreadable replay: {file.FullName} ({file.Length} bytes, {file.LastWriteTime:yyyy-MM-dd HH:mm:ss})", ex);
             _data.ProcessedFiles[key] = "error: " + message;
@@ -241,7 +264,7 @@ public sealed class Tracker
             _data.Matches.RemoveAll(m => m.SessionId == record.SessionId);
             _data.ProcessedFiles[key] = "autre mode";
             _store.SaveData(_data);
-            return new Outcome(Skipped: L.T("pas une partie Battle Royale (créatif / autre mode)", "not a Battle Royale match (Creative / other mode)", "no es una partida de Battle Royale (Creativo / otro modo)"));
+            return new Outcome(Skipped: L.T("not a Battle Royale match (Creative / other mode)", "не матч «Королевской битвы» (творческий / другой режим)"));
         }
 
         var existing = _data.Matches.FirstOrDefault(m => m.SessionId == record.SessionId);
@@ -249,7 +272,7 @@ public sealed class Tracker
         {
             _data.ProcessedFiles[key] = record.SessionId;
             _store.SaveData(_data);
-            return new Outcome(Skipped: L.T("partie déjà comptée (même partie, fichier renommé)", "match already counted (same match, renamed file)", "partida ya contada (misma partida, archivo renombrado)"));
+            return new Outcome(Skipped: L.T("match already counted (same match, renamed file)", "матч уже посчитан (тот же матч, файл переименован)"));
         }
 
         if (existing != null)
@@ -279,17 +302,22 @@ public sealed class Tracker
 
     private void PrintOutcome(Outcome o)
     {
+        if (o.Retry)
+        {
+            Console.WriteLine(L.T("   Not readable right now: trying again shortly.", "   Сейчас прочитать не удалось: скоро повторю попытку."));
+            return;
+        }
         if (o.Error != null)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(L.T($"   Impossible de lire ce replay : {o.Error}", $"   Cannot read this replay: {o.Error}", $"   No se puede leer esta repetición: {o.Error}"));
+            Console.WriteLine(L.T($"   Cannot read this replay: {o.Error}", $"   Не удалось прочитать этот повтор: {o.Error}"));
             Console.ResetColor();
             PrintErrorLogHint();
             return;
         }
         if (o.Skipped != null)
         {
-            Console.WriteLine($"   {L.T("Ignoré", "Skipped", "Ignorada")} : {o.Skipped}.");
+            Console.WriteLine($"   {L.T("Skipped", "Пропущено")} : {o.Skipped}.");
             return;
         }
 
@@ -299,10 +327,9 @@ public sealed class Tracker
         if (current != null && Profiles.Key(m) != current.Key)
         {
             Console.ForegroundColor = ConsoleColor.DarkYellow;
-            var name = m.PlayerName ?? L.T("compte inconnu", "unknown account", "cuenta desconocida");
-            Console.WriteLine(L.T($"   Partie jouée sur un autre compte ({name}) : elle compte pour son propre profil. Profil affiché : {current.Name} (« Changer de profil » dans le menu).",
-                $"   Match played on another account ({name}): it counts for its own profile. Profile shown: {current.Name} (\"Switch profile\" in the menu).",
-                $"   Partida jugada con otra cuenta ({name}): cuenta para su propio perfil. Perfil mostrado: {current.Name} («Cambiar de perfil» en el menú)."));
+            var name = m.PlayerName ?? L.T("unknown account", "неизвестный аккаунт");
+            Console.WriteLine(L.T($"   Match played on another account ({name}): it counts for its own profile. Profile shown: {current.Name} (\"Switch profile\" in the menu).",
+                $"   Матч сыгран на другом аккаунте ({name}): он идёт в его собственный профиль. Показан профиль: {current.Name} («Сменить профиль» в меню)."));
             Console.ResetColor();
         }
     }
@@ -310,9 +337,8 @@ public sealed class Tracker
     private void PrintErrorLogHint()
     {
         Console.ForegroundColor = ConsoleColor.DarkGray;
-        Console.WriteLine(L.T($"   Détails dans {_store.ErrorLogPath}. Souvent dû à une mise à jour de Fortnite : signale-le sur {AppInfo.IssuesUrl}",
-            $"   Details in {_store.ErrorLogPath}. Usually caused by a Fortnite update: report it at {AppInfo.IssuesUrl}",
-            $"   Detalles en {_store.ErrorLogPath}. Suele deberse a una actualización de Fortnite: avísalo en {AppInfo.IssuesUrl}"));
+        Console.WriteLine(L.T($"   Details in {_store.ErrorLogPath}. Usually caused by a Fortnite update: report it at {AppInfo.IssuesUrl}",
+            $"   Подробности в {_store.ErrorLogPath}. Обычно причина — обновление Fortnite: сообщи об этом на {AppInfo.IssuesUrl}"));
         Console.ResetColor();
     }
 
@@ -320,32 +346,33 @@ public sealed class Tracker
     {
         var matches = outcomes.Where(o => o.Match != null).Select(o => o.Match!).ToList();
         var skipped = outcomes.Count(o => o.Skipped != null);
+        outcomes = outcomes.Where(o => !o.Retry).ToList();
         var errors = outcomes.Where(o => o.Error != null).Select(o => o.Error!).ToList();
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write($"  ✔ {L.Count(outcomes.Count, "replay analysé", "replays analysés", "replay analyzed", "replays analyzed", "repetición analizada", "repeticiones analizadas")}");
+        Console.Write($"  ✔ {L.Count(outcomes.Count, "replay analyzed", "replays analyzed", "повтор проанализирован", "повтора проанализировано", "повторов проанализировано")}");
         Console.ResetColor();
-        Console.Write(L.T(" : ", ": ", ": "));
+        Console.Write(L.T(": ", ": "));
         Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.Write($"{L.Count(matches.Count, "partie", "parties", "match", "matches", "partida", "partidas")}, {L.Count(matches.Sum(m => m.ChestsOpened), "coffre", "chest", "cofre")}");
+        Console.Write($"{L.Count(matches.Count, "match", "matches", "матч", "матча", "матчей")}, {L.Count(matches.Sum(m => m.ChestsOpened), "chest", "chests", "сундук", "сундука", "сундуков")}");
         var treasures = matches.Sum(m => m.TreasureFinds.Count);
         if (treasures > 0)
         {
             Console.ForegroundColor = ConsoleColor.Magenta;
-            Console.Write($", ★ {L.Count(treasures, "trésor", "treasure", "tesoro")}");
+            Console.Write($", ★ {L.Count(treasures, "treasure", "treasures", "сокровище", "сокровища", "сокровищ")}");
         }
         Console.ResetColor();
         Console.WriteLine();
         if (skipped > 0)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(L.T($"    {skipped} ignoré(s) : modes créatifs, parties déjà comptées ou replays incomplets.", $"    {skipped} skipped: Creative modes, matches already counted or incomplete replays.", $"    {skipped} ignorada(s): modos creativos, partidas ya contadas o repeticiones incompletas."));
+            Console.WriteLine(L.T($"    {skipped} skipped: Creative modes, matches already counted or incomplete replays.", $"    Пропущено: {skipped} (творческие режимы, уже посчитанные матчи или неполные повторы)."));
             Console.ResetColor();
         }
         if (errors.Count > 0)
         {
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine(L.T($"    {errors.Count} replay(s) illisible(s) :", $"    {errors.Count} unreadable replay(s):", $"    {errors.Count} repetición(es) ilegible(s):"));
+            Console.WriteLine(L.T($"    {errors.Count} unreadable replay(s):", $"    Нечитаемых повторов: {errors.Count}:"));
             foreach (var e in errors.Take(5))
             {
                 Console.WriteLine($"      {e}");
@@ -358,6 +385,13 @@ public sealed class Tracker
     /// <summary>Reads the file (even while Fortnite writes it) and parses it on a lowest-priority background thread.</summary>
     private MatchRecord Analyze(FileInfo file, TimeSpan timeout)
     {
+        if (_orphan is { IsAlive: true })
+        {
+            throw new ParserBusyException();
+        }
+        _orphan = null;
+        Unreal.Core.ReplayReader<FortniteReplayReader.Models.FortniteReplay>.Cancel = false;
+
         byte[] bytes;
         using (var fs = new FileStream(file.FullName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
         {
@@ -388,7 +422,10 @@ public sealed class Tracker
         worker.Start();
         if (!worker.Join(timeout))
         {
-            throw new TimeoutException(L.T("analyse trop longue", "analysis took too long", "análisis demasiado largo"));
+            // Ask the parse to stop, and let nothing else be parsed until it has.
+            Unreal.Core.ReplayReader<FortniteReplayReader.Models.FortniteReplay>.Cancel = true;
+            _orphan = worker;
+            throw new TimeoutException(L.T("analysis took too long", "анализ занял слишком много времени"));
         }
         bytes = Array.Empty<byte>();
         ReleaseMemory();
@@ -448,7 +485,7 @@ public sealed class Tracker
             _liveFile = file.FullName;
             started = true;
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(L.T($"[{DateTime.Now:HH:mm:ss}] Partie en cours… (ses coffres seront comptés à la fin)", $"[{DateTime.Now:HH:mm:ss}] Match in progress… (its chests will be counted at the end)", $"[{DateTime.Now:HH:mm:ss}] Partida en curso… (sus cofres se contarán al final)"));
+            Console.WriteLine(L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress… (its chests will be counted at the end)", $"[{DateTime.Now:HH:mm:ss}] Идёт матч… (сундуки будут подсчитаны в конце)"));
             Console.ResetColor();
         }
 
@@ -488,8 +525,8 @@ public sealed class Tracker
         if (changed && LiveMatch != null)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {L.T("Partie en cours", "Match in progress", "Partida en curso")}: {L.Count(LiveMatch.ChestsOpened, "coffre", "chest", "cofre")}"
-                + (LiveMatch.TreasureFinds.Count > 0 ? $", {L.Count(LiveMatch.TreasureFinds.Count, "trésor", "treasure", "tesoro")}" : ""));
+            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {L.T("Match in progress", "Идёт матч")}: {L.Count(LiveMatch.ChestsOpened, "chest", "chests", "сундук", "сундука", "сундуков")}"
+                + (LiveMatch.TreasureFinds.Count > 0 ? $", {L.Count(LiveMatch.TreasureFinds.Count, "treasure", "treasures", "сокровище", "сокровища", "сокровищ")}" : ""));
             Console.ResetColor();
         }
         return changed || started;
@@ -522,35 +559,33 @@ public sealed class Tracker
         var when = (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToLocalTime();
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.Write($"   {(updated ? "↻" : "✔")} {L.T("Partie du", "Match of", "Partida del")} {L.DateTimeShort(when)}");
+        Console.Write($"   {(updated ? "↻" : "✔")} {L.T("Match of", "Матч от")} {L.DateTimeShort(when)}");
         Console.ResetColor();
-        Console.Write($" ({Pretty.Playlist(m.Playlist)}, {Pretty.Placement(m)}){L.T(" : ", ": ", ": ")}");
+        Console.Write($" ({Pretty.Playlist(m.Playlist)}, {Pretty.Placement(m)}){L.T(": ", ": ")}");
         Console.ForegroundColor = ConsoleColor.Yellow;
         var destroyed = m.Chests.Count(c => c.Destroyed);
-        Console.Write(L.Count(m.ChestsOpened, "coffre", "chest", "cofre")
-            + (destroyed > 0 ? L.T($" (dont {L.Count(destroyed, "détruit", "", "")})", $" ({destroyed} destroyed)", $" ({L.Count(destroyed, "", "", "destruido")})") : ""));
+        Console.Write(L.Count(m.ChestsOpened, "chest", "chests", "сундук", "сундука", "сундуков")
+            + (destroyed > 0 ? L.T($" ({destroyed} destroyed)", $" (разрушено: {destroyed})") : ""));
         Console.ResetColor();
-        Console.WriteLine($"  →  total{L.T(" : ", ": ", ": ")}{L.N(total)}");
+        Console.WriteLine($"  →  total{L.T(": ", ": ")}{L.N(total)}");
 
         foreach (var find in m.TreasureFinds)
         {
             Console.ForegroundColor = find.FromGoldenChest ? ConsoleColor.Yellow : ConsoleColor.Magenta;
-            Console.WriteLine($"   {(find.FromGoldenChest ? "★★" : "★")} {L.T("Trésor obtenu : ", "Treasure obtained: ", "Tesoro obtenido: ")}{find.DisplayName} ({Pretty.Obtained(find)})");
+            Console.WriteLine($"   {(find.FromGoldenChest ? "★★" : "★")} {L.T("Treasure obtained: ", "Сокровище получено: ")}{find.DisplayName} ({Pretty.Obtained(find)})");
             if (!find.SourceIsChest)
             {
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine(L.T($"   ⚑ Obtenu autrement qu'avec un coffre ({find.SourceLabel}) : fiabilité faible, sans doute une erreur d'analyse",
-                    $"   ⚑ Obtained other than from a chest ({find.SourceLabel}): low reliability, probably an analysis mistake",
-                    $"   ⚑ Obtenido de otra forma que con un cofre ({find.SourceLabel}): fiabilidad baja, probablemente un error de análisis"));
+                Console.WriteLine(L.T($"   ⚑ Obtained other than from a chest ({find.SourceLabel}): low reliability, probably an analysis mistake",
+                    $"   ⚑ Получено не из сундука ({find.SourceLabel}): низкая достоверность, вероятно, ошибка анализа"));
             }
             Console.ResetColor();
         }
         if (m.TeamTreasureFinds.Count > 0)
         {
             Console.ForegroundColor = ConsoleColor.DarkMagenta;
-            Console.WriteLine(L.T($"   + {L.Count(m.TeamTreasureFinds.Count, "trésor trouvé", "trésors trouvés", "", "", "", "")} par l'équipe (estimation, voir le rapport)",
-                $"   + {L.Count(m.TeamTreasureFinds.Count, "", "", "treasure", "treasures", "", "")} found by the team (estimate, see the report)",
-                $"   + {L.Count(m.TeamTreasureFinds.Count, "", "", "", "", "tesoro encontrado", "tesoros encontrados")} por el equipo (estimación, ver el informe)"));
+            Console.WriteLine(L.T($"   + {L.Count(m.TeamTreasureFinds.Count, "treasure", "treasures", "сокровище", "сокровища", "сокровищ")} found by the team (estimate, see the report)",
+                $"   + {L.Count(m.TeamTreasureFinds.Count, "treasure", "treasures", "сокровище", "сокровища", "сокровищ")} у команды (оценка, см. отчёт)"));
             Console.ResetColor();
         }
     }
@@ -567,13 +602,12 @@ public sealed class Tracker
         {
             sb.Append($"{profile.Name}   |   ");
         }
-        sb.Append(L.T($"Parties : {L.N(matches.Count)}   |   Coffres : {L.N(chests)}   |   Trésors : {L.N(treasures)}",
-            $"Matches: {L.N(matches.Count)}   |   Chests: {L.N(chests)}   |   Treasures: {L.N(treasures)}",
-            $"Partidas: {L.N(matches.Count)}   |   Cofres: {L.N(chests)}   |   Tesoros: {L.N(treasures)}"));
+        sb.Append(L.T($"Matches: {L.N(matches.Count)}   |   Chests: {L.N(chests)}   |   Treasures: {L.N(treasures)}",
+            $"Матчи: {L.N(matches.Count)}   |   Сундуки: {L.N(chests)}   |   Сокровища: {L.N(treasures)}"));
         if (matches.Count > 0)
         {
             var avg = ((double)chests / matches.Count).ToString("F1", L.Culture);
-            sb.Append(L.T($"   |   Moyenne : {avg} / partie", $"   |   Average: {avg} / match", $"   |   Media: {avg} / partida"));
+            sb.Append(L.T($"   |   Average: {avg} / match", $"   |   В среднем: {avg} / матч"));
         }
 
         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -587,82 +621,74 @@ public static class ReplayHeaderProbe
 {
     private const uint FileMagic = 0x1CA2E27F;
 
+    // Each scan asks several times about the same file: the header is read again only when the file changed.
+    private static readonly Dictionary<string, (long Length, long Ticks, bool? Live, bool KeyMissing)> Cache = new();
+
     /// <summary>
-    /// True when the replay is encrypted and its key is not written yet. Fortnite writes the real key only when
-    /// the match ends (all zeros before): the data of a match in progress cannot be read.
+    /// True when the replay is encrypted and its key is not written yet (or the header cannot be read). Fortnite
+    /// writes the real key only when the match ends (all zeros before): the data of a match in progress cannot be read.
     /// </summary>
-    public static bool KeyMissing(string path)
+    public static bool KeyMissing(string path) => Read(path).KeyMissing;
+
+    /// <summary>True while the match is being recorded, null when the header cannot be read.</summary>
+    public static bool? IsLive(string path) => Read(path).Live;
+
+    private static (bool? Live, bool KeyMissing) Read(string path)
     {
         try
         {
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-            using var br = new BinaryReader(fs);
-            if (br.ReadUInt32() != FileMagic) return true;
-            var fileVersion = br.ReadUInt32();
-            if (fileVersion >= 7)
+            var info = new FileInfo(path);
+            var (length, ticks) = (info.Length, info.LastWriteTimeUtc.Ticks);
+            lock (Cache)
             {
-                var count = br.ReadInt32();
-                if (count < 0 || count > 64) return true;
-                fs.Seek(count * 20L, SeekOrigin.Current);
+                if (Cache.TryGetValue(path, out var c) && c.Length == length && c.Ticks == ticks)
+                {
+                    return (c.Live, c.KeyMissing);
+                }
             }
-            fs.Seek(12, SeekOrigin.Current);
-            var len = br.ReadInt32();
-            fs.Seek(len < 0 ? -2L * len : len, SeekOrigin.Current);
-            br.ReadUInt32(); // bIsLive
-            br.ReadInt64(); // timestamp
-            br.ReadUInt32(); // compressed
-            if (br.ReadUInt32() == 0) return false; // not encrypted
-            var keyLen = br.ReadInt32();
-            if (keyLen <= 0 || keyLen > 256) return true;
-            return br.ReadBytes(keyLen).All(b => b == 0);
+            var result = ReadHeader(path);
+            lock (Cache)
+            {
+                if (Cache.Count > 256) Cache.Clear();
+                Cache[path] = (length, ticks, result.Live, result.KeyMissing);
+            }
+            return result;
         }
         catch
         {
-            return true;
+            return (null, true);
         }
     }
 
-    public static bool? IsLive(string path)
+    private static (bool? Live, bool KeyMissing) ReadHeader(string path)
     {
+        bool? live = null;
         try
         {
             using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             using var br = new BinaryReader(fs);
-            if (br.ReadUInt32() != FileMagic)
-            {
-                return null;
-            }
-
+            if (br.ReadUInt32() != FileMagic) return (null, true);
             var fileVersion = br.ReadUInt32();
             if (fileVersion >= 7)
             {
                 var count = br.ReadInt32();
-                if (count < 0 || count > 64)
-                {
-                    return null;
-                }
+                if (count < 0 || count > 64) return (null, true);
                 fs.Seek(count * 20L, SeekOrigin.Current);
             }
-
-            br.ReadUInt32(); // LengthInMS
-            br.ReadUInt32(); // NetworkVersion
-            br.ReadUInt32(); // Changelist
-
-            var len = br.ReadInt32(); // FriendlyName (FString)
-            if (len < 0)
-            {
-                fs.Seek(-2L * len, SeekOrigin.Current);
-            }
-            else
-            {
-                fs.Seek(len, SeekOrigin.Current);
-            }
-
-            return br.ReadUInt32() != 0;
+            fs.Seek(12, SeekOrigin.Current); // LengthInMS, NetworkVersion, Changelist
+            var len = br.ReadInt32(); // FriendlyName (FString, UTF-16 when negative)
+            fs.Seek(len < 0 ? -2L * len : len, SeekOrigin.Current);
+            live = br.ReadUInt32() != 0; // bIsLive
+            br.ReadInt64(); // timestamp
+            br.ReadUInt32(); // compressed
+            if (br.ReadUInt32() == 0) return (live, false); // not encrypted
+            var keyLen = br.ReadInt32();
+            if (keyLen <= 0 || keyLen > 256) return (live, true);
+            return (live, br.ReadBytes(keyLen).All(b => b == 0));
         }
         catch
         {
-            return null;
+            return (live, true);
         }
     }
 }

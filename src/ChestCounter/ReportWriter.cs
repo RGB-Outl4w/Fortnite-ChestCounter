@@ -10,17 +10,17 @@ public static class Pretty
     {
         if (string.IsNullOrEmpty(playlist))
         {
-            return L.T("mode inconnu", "unknown mode", "modo desconocido");
+            return L.T("unknown mode", "неизвестный режим");
         }
 
         var p = playlist.ToLowerInvariant();
         var parts = new List<string>();
-        if (p.Contains("habanero") || p.Contains("ranked")) parts.Add(L.T("Classée", "Ranked", "Clasificatoria"));
-        if (p.Contains("nobuild")) parts.Add(L.T("Zéro construction", "Zero Build", "Cero construcción"));
-        if (p.Contains("solo")) parts.Add(L.T("Solo", "Solo", "Solitario"));
-        else if (p.Contains("duo")) parts.Add(L.T("Duo", "Duos", "Dúos"));
-        else if (p.Contains("trio")) parts.Add(L.T("Trio", "Trios", "Tríos"));
-        else if (p.Contains("squad")) parts.Add(L.T("Section", "Squads", "Escuadrones"));
+        if (p.Contains("habanero") || p.Contains("ranked")) parts.Add(L.T("Ranked", "Рейтинг"));
+        if (p.Contains("nobuild")) parts.Add(L.T("Zero Build", "Без строительства"));
+        if (p.Contains("solo")) parts.Add(L.T("Solo", "Одиночный"));
+        else if (p.Contains("duo")) parts.Add(L.T("Duos", "Пары"));
+        else if (p.Contains("trio")) parts.Add(L.T("Trios", "Трио"));
+        else if (p.Contains("squad")) parts.Add(L.T("Squads", "Отряды"));
         return parts.Count > 0 ? string.Join(" · ", parts) : playlist.Replace("Playlist_", "");
     }
 
@@ -28,11 +28,11 @@ public static class Pretty
     {
         if (m.Placement is not int place || place <= 0)
         {
-            return L.T("place inconnue", "unknown placement", "puesto desconocido");
+            return L.T("unknown placement", "место неизвестно");
         }
         if (place == 1)
         {
-            return L.T("Top 1 !", "Victory Royale!", "¡Victoria magistral!");
+            return L.T("Victory Royale!", "Королевская победа!");
         }
         return m.TotalPlayers is int total && total > 0 ? $"{L.Ordinal(place)} / {total}" : L.Ordinal(place);
     }
@@ -43,18 +43,18 @@ public static class Pretty
         return $"{s / 60}:{s % 60:00}";
     }
 
-    /// <summary>"à 7:16 · Coffre rare" (certain) or "vers 5:04 · Coffre rare (probable)".</summary>
+    /// <summary>"at 7:16 · Rare chest" (certain) or "around 5:04 · Rare chest (likely)".</summary>
     public static string Obtained(TreasureFind f)
     {
         if (f.ObtainedAtSeconds is not float t)
         {
-            return L.T("moment et source inconnus", "time and source unknown", "momento y origen desconocidos");
+            return L.T("time and source unknown", "время и источник неизвестны");
         }
-        var when = f.TimeExact ? $"{L.T("à", "at", "a los")} {Clock(t)}" : $"{L.T("vers", "around", "hacia los")} {Clock(t)}";
+        var when = f.TimeExact ? $"{L.T("at", "в")} {Clock(t)}" : $"{L.T("around", "около")} {Clock(t)}";
         return f.SourceCertain ? $"{when} · {f.SourceLabel}" : $"{when} · {f.SourceLabel} ({Likely})";
     }
 
-    public static string Likely => L.T("probable", "likely", "probable");
+    public static string Likely => L.T("likely", "вероятно");
 
     public static string ItemName(string item)
     {
@@ -88,7 +88,7 @@ public static class ReportWriter
         var end = start.ToUniversalTime().AddSeconds(m.DurationSeconds ?? 0);
         return end >= SessionStartUtc.AddMinutes(-2);
     }
-    private static CultureInfo Fr => L.Culture;
+    private static CultureInfo Cu => L.Culture;
 
     public static void WriteAll(Store store, Config config, TrackerData data)
     {
@@ -101,7 +101,7 @@ public static class ReportWriter
         }
         catch (Exception ex)
         {
-            Console.WriteLine(L.T($"Impossible d'écrire le rapport : {ex.Message}", $"Cannot write the report: {ex.Message}", $"No se puede escribir el informe: {ex.Message}"));
+            Console.WriteLine(L.T($"Cannot write the report: {ex.Message}", $"Не удалось записать отчёт: {ex.Message}"));
         }
     }
 
@@ -247,11 +247,10 @@ public static class ReportWriter
         var every = treasures > 0 ? (int)Math.Round((double)totalChests / treasures) : 0;
 
         var sb = new StringBuilder();
-        var title = L.T("Compteur de coffres", "Chest Counter", "Contador de cofres");
+        var title = L.T("Chest Counter", "Счётчик сундуков");
         var updated = L.T(
-            $"Mis à jour le {DateTime.Now.ToString("dd/MM/yyyy à HH:mm:ss", Fr)} · actualisation auto",
-            $"Updated {DateTime.Now.ToString("d MMM yyyy 'at' HH:mm:ss", Fr)} · auto refresh",
-            $"Actualizado el {DateTime.Now.ToString("dd/MM/yyyy 'a las' HH:mm:ss", Fr)} · actualización automática");
+            $"Updated {DateTime.Now.ToString("d MMM yyyy 'at' HH:mm:ss", Cu)} · auto refresh",
+            $"Обновлено {DateTime.Now.ToString("d MMM yyyy 'в' HH:mm:ss", Cu)} · обновляется автоматически");
         string Tile(string value, string label, string? sub = null) =>
             $"""<div class="tile"><div class="v num">{value}</div><div class="l">{label}</div>{(sub != null ? $"<div class=\"s\">{sub}</div>" : "")}</div>""";
 
@@ -264,13 +263,13 @@ public static class ReportWriter
             <span class="muted" style="font-size:13px">{updated}</span></header>
             {LoadingCard(progress)}{ProfilesLine(profiles, player)}
             <section class="tiles">
-              <div class="tile hero"><div class="k">{L.T("Coffres au total", "Chests in total", "Cofres en total")}</div><div class="v num">{totalChests.ToString("N0", Fr)}</div><div class="l">{L.T($"ouverts ou détruits par toi · {session.ToString("N0", Fr)} depuis le lancement", $"opened or destroyed by you · {session.ToString("N0", Fr)} since the tool started", $"abiertos o destruidos por ti · {session.ToString("N0", Fr)} desde que se abrió")}</div></div>
-              {Tile(matches.Count.ToString("N0", Fr), L.T("parties analysées", "matches analyzed", "partidas analizadas"))}
-              {Tile(avg.ToString("0.0", Fr), L.T("coffres par partie", "chests per match", "cofres por partida"))}
-              {Tile(best.ToString("N0", Fr), L.T("record en une partie", "best match", "récord en una partida"))}
-              {Tile(treasures.ToString("N0", Fr), L.T("trésors trouvés", "treasures found", "tesoros encontrados"),
-                  (every > 0 ? L.T($"1 tous les {every.ToString("N0", Fr)} coffres", $"1 every {every.ToString("N0", Fr)} chests", $"1 cada {every.ToString("N0", Fr)} cofres") : null)
-                  + (teamTreasures > 0 ? (every > 0 ? "<br>" : "") + L.T($"+{teamTreasures} par l'équipe (estimation)", $"+{teamTreasures} by the team (estimate)", $"+{teamTreasures} del equipo (estimación)") : ""))}
+              <div class="tile hero"><div class="k">{L.T("Chests in total", "Всего сундуков")}</div><div class="v num">{totalChests.ToString("N0", Cu)}</div><div class="l">{L.T($"opened or destroyed by you · {session.ToString("N0", Cu)} since the tool started", $"открыто или разрушено тобой · {session.ToString("N0", Cu)} с момента запуска программы")}</div></div>
+              {Tile(matches.Count.ToString("N0", Cu), L.T("matches analyzed", "матчей проанализировано"))}
+              {Tile(avg.ToString("0.0", Cu), L.T("chests per match", "сундуков за матч"))}
+              {Tile(best.ToString("N0", Cu), L.T("best match", "лучший матч"))}
+              {Tile(treasures.ToString("N0", Cu), L.T("treasures found", "сокровищ найдено"),
+                  (every > 0 ? L.T($"1 every {every.ToString("N0", Cu)} chests", $"1 на {every.ToString("N0", Cu)} сунд.") : null)
+                  + (teamTreasures > 0 ? (every > 0 ? "<br>" : "") + L.T($"+{teamTreasures} by the team (estimate)", $"+{teamTreasures} у команды (оценка)") : ""))}
             </section>
             """);
 
@@ -279,20 +278,20 @@ public static class ReportWriter
         var days = Enumerable.Range(0, 30).Select(i => today.AddDays(i - 29)).ToList();
         var perDay = days.Select(d => matches.Where(m => When(m).Date == d).Sum(m => m.ChestsOpened)).ToList();
         var max = Math.Max(1, perDay.Max());
-        sb.Append($"<section><h2 class=\"pirate\">{L.T("Coffres par jour", "Chests per day", "Cofres por día")}</h2><div class=\"card chart\"><div class=\"bars\">");
+        sb.Append($"<section><h2 class=\"pirate\">{L.T("Chests per day", "Сундуки по дням")}</h2><div class=\"card chart\"><div class=\"bars\">");
         for (var i = 0; i < days.Count; i++)
         {
             var v = perDay[i];
             var h = (int)Math.Round(100.0 * v / max);
-            var tip = $"{days[i].ToString(L.T("ddd dd/MM", "ddd d MMM", "ddd dd/MM"), Fr)}{L.T(" : ", ": ", ": ")}{L.Count(v, "coffre", "chest", "cofre")}";
+            var tip = $"{days[i].ToString(L.T("ddd d MMM", "ddd d MMM"), Cu)}{L.T(": ", ": ")}{L.Count(v, "chest", "chests", "сундук", "сундука", "сундуков")}";
             var cls = v == 0 ? " zero" : v == max ? " top" : "";
             sb.Append($"<div class=\"col\" aria-label=\"{H(tip)}\"><span class=\"tip\" style=\"bottom:calc({Math.Max(h, 3)}% + 6px)\">{H(tip)}</span><div class=\"bar{cls}\" style=\"height:{h}%\"></div></div>");
         }
         var bestDay = perDay[perDay.IndexOf(perDay.Max())];
         var bestDate = days[perDay.IndexOf(perDay.Max())];
-        sb.Append($"</div><div class=\"axis\"><span>{days[0].ToString(L.T("dd/MM", "d MMM", "dd/MM"), Fr)}</span>"
-            + (bestDay > 0 ? $"<span>{L.T("meilleur jour", "best day", "mejor día")} : {bestDate.ToString(L.T("dd/MM", "d MMM", "dd/MM"), Fr)} · {L.Count(bestDay, "coffre", "chest", "cofre")}</span>" : "")
-            + $"<span>{L.T("aujourd'hui", "today", "hoy")}</span></div></div></section>");
+        sb.Append($"</div><div class=\"axis\"><span>{days[0].ToString(L.T("d MMM", "d MMM"), Cu)}</span>"
+            + (bestDay > 0 ? $"<span>{L.T("best day", "лучший день")} : {bestDate.ToString(L.T("d MMM", "d MMM"), Cu)} · {L.Count(bestDay, "chest", "chests", "сундук", "сундука", "сундуков")}</span>" : "")
+            + $"<span>{L.T("today", "сегодня")}</span></div></div></section>");
 
         // By chest type (with the other interactions, not in the total) | where the player's treasures come from.
         var byKind = matches.SelectMany(m => m.Chests).GroupBy(c => ChestKinds.Canonical(c.Kind)).OrderByDescending(g => g.Count()).ToList();
@@ -306,22 +305,22 @@ public static class ReportWriter
             .Where(x => x.Count > 0)
             .OrderByDescending(x => x.Count)
             .ToList();
-        sb.Append($"<div class=\"two\"><section><h2 class=\"pirate\">{L.T("Par type de coffre", "By chest type", "Por tipo de cofre")}</h2><div class=\"card\"><table>");
+        sb.Append($"<div class=\"two\"><section><h2 class=\"pirate\">{L.T("By chest type", "По типам сундуков")}</h2><div class=\"card\"><table>");
         foreach (var g in byKind)
         {
             var color = KindColor.GetValueOrDefault(g.Key, "#9a8f7a");
             var w = Math.Max(2, (int)Math.Round(100.0 * g.Count() / kindMax));
-            sb.Append($"<tr><td><span class=\"sw\" style=\"background:{color}\"></span>{H(L.Name(g.Key))}</td><td style=\"width:150px\"><span class=\"meter\"><i style=\"width:{w}%;background:{color}\"></i></span></td><td class=\"n num big\">{g.Count().ToString("N0", Fr)}</td></tr>");
+            sb.Append($"<tr><td><span class=\"sw\" style=\"background:{color}\"></span>{H(L.Name(g.Key))}</td><td style=\"width:150px\"><span class=\"meter\"><i style=\"width:{w}%;background:{color}\"></i></span></td><td class=\"n num big\">{g.Count().ToString("N0", Cu)}</td></tr>");
         }
         var destroyedTotal = matches.Sum(m => m.Chests.Count(c => c.Destroyed));
         var notes = new List<string>();
         if (destroyedTotal > 0)
         {
-            notes.Add(L.T($"dont {destroyedTotal.ToString("N0", Fr)} détruits (cassés au lieu d'être ouverts)", $"of which {destroyedTotal.ToString("N0", Fr)} destroyed (broken instead of opened)", $"de ellos, {destroyedTotal.ToString("N0", Fr)} destruidos (rotos en lugar de abiertos)"));
+            notes.Add(L.T($"of which {destroyedTotal.ToString("N0", Cu)} destroyed (broken instead of opened)", $"из них разрушено (сломано, а не открыто): {destroyedTotal.ToString("N0", Cu)}"));
         }
         foreach (var (kind, count) in otherKinds)
         {
-            sb.Append($"<tr class=\"items\"><td>{H(L.Name(kind))} {L.T("(hors total)", "(not in the total)", "(fuera del total)")}</td><td></td><td class=\"n num\">{count.ToString("N0", Fr)}</td></tr>");
+            sb.Append($"<tr class=\"items\"><td>{H(L.Name(kind))} {L.T("(not in the total)", "(не входит в итог)")}</td><td></td><td class=\"n num\">{count.ToString("N0", Cu)}</td></tr>");
         }
         sb.Append("</table>");
         if (notes.Count > 0)
@@ -332,57 +331,56 @@ public static class ReportWriter
 
         var treasureRows = matches.SelectMany(m => m.TreasureFinds.Select(f => (m, f, Team: false))).ToList();
         var teamRows = matches.SelectMany(m => m.TeamTreasureFinds.Select(f => (m, f, Team: true))).ToList();
-        sb.Append($"<section><h2 class=\"pirate\">{L.T("D'où viennent tes trésors", "Where your treasures come from", "De dónde vienen tus tesoros")}</h2><div class=\"card\"><table>");
+        sb.Append($"<section><h2 class=\"pirate\">{L.T("Where your treasures come from", "Откуда твои сокровища")}</h2><div class=\"card\"><table>");
         if (treasureRows.Count == 0)
         {
-            sb.Append($"<tr><td class=\"items\">{L.T("Pas encore de trésor.", "No treasure yet.", "Todavía ningún tesoro.")}</td></tr>");
+            sb.Append($"<tr><td class=\"items\">{L.T("No treasure yet.", "Сокровищ пока нет.")}</td></tr>");
         }
         foreach (var g in treasureRows.GroupBy(r => r.f.SourceLabel).OrderByDescending(g => g.Count()))
         {
             var isChest = g.First().f.SourceIsChest;
             sb.Append(isChest
                 ? $"<tr><td>{H(g.Key)}</td><td class=\"n num big\">{g.Count()}</td></tr>"
-                : $"<tr class=\"unusual\"><td class=\"warn\">{H(g.Key)} <span style=\"font-size:12px\">· {L.T("fiabilité faible", "low reliability", "fiabilidad baja")}</span></td><td class=\"n num big warn\">{g.Count()}</td></tr>");
+                : $"<tr class=\"unusual\"><td class=\"warn\">{H(g.Key)} <span style=\"font-size:12px\">· {L.T("low reliability", "низкая достоверность")}</span></td><td class=\"n num big warn\">{g.Count()}</td></tr>");
         }
         sb.Append("</table></div>");
         var unusual = treasureRows.Where(r => !r.f.SourceIsChest).ToList();
         if (unusual.Count > 0)
         {
-            var count = L.Count(unusual.Count, "trésor obtenu", "trésors obtenus", "treasure", "treasures", "tesoro obtenido", "tesoros obtenidos");
+            var count = L.Count(unusual.Count, "treasure", "treasures", "сокровище", "сокровища", "сокровищ");
             sb.Append($"<div class=\"flag\">{FlagIcon}<span>" + L.T(
-                $"<b>{count} autrement qu'avec un coffre.</b> Fiabilité faible : il s'agit très probablement d'une erreur dans la façon dont les replays sont analysés.",
                 $"<b>{count} obtained other than from a chest.</b> Low reliability: most likely a mistake in the way the replays are analyzed.",
-                $"<b>{count} de otra forma que con un cofre.</b> Fiabilidad baja: muy probablemente un error en la forma de analizar las repeticiones.") + "</span></div>");
+                $"<b>Получено не из сундука: {count}.</b> Низкая достоверность: скорее всего, ошибка анализа повторов.") + "</span></div>");
         }
         sb.Append("</section></div>");
 
         // Treasures: the player's own, then (hidden unless asked) those found by teammates, shared with the whole team.
         if (treasureRows.Count > 0 || teamRows.Count > 0)
         {
-            sb.Append($"<section><div class=\"head\"><h2 class=\"pirate\">{L.T("Trésors trouvés", "Treasures found", "Tesoros encontrados")} · <span class=\"num\">{treasures}</span></h2>");
+            sb.Append($"<section><div class=\"head\"><h2 class=\"pirate\">{L.T("Treasures found", "Найденные сокровища")} · <span class=\"num\">{treasures}</span></h2>");
             if (teamRows.Count > 0)
             {
-                sb.Append($"<label class=\"teamtoggle\"><input type=\"checkbox\" id=\"showteam\"> {L.T($"Afficher aussi l'équipe (+{teamRows.Count}, estimation)", $"Also show the team (+{teamRows.Count}, estimate)", $"Mostrar también el equipo (+{teamRows.Count}, estimación)")}</label>");
+                sb.Append($"<label class=\"teamtoggle\"><input type=\"checkbox\" id=\"showteam\"> {L.T($"Also show the team (+{teamRows.Count}, estimate)", $"Показывать и команду (+{teamRows.Count}, оценка)")}</label>");
             }
-            sb.Append($"</div><div class=\"card\"><table><tr><th>{L.T("Partie", "Match", "Partida")}</th><th>{L.T("Trésor", "Treasure", "Tesoro")}</th><th>{L.T("Obtenu à", "Obtained at", "Momento")}</th><th>{L.T("Source", "Source", "Origen")}</th><th>{L.T("Par", "By", "Por")}</th></tr>");
+            sb.Append($"</div><div class=\"card\"><table><tr><th>{L.T("Match", "Матч")}</th><th>{L.T("Treasure", "Сокровище")}</th><th>{L.T("Obtained at", "Получено")}</th><th>{L.T("Source", "Источник")}</th><th>{L.T("By", "Кем")}</th></tr>");
             foreach (var (m, f, team) in treasureRows.Concat(teamRows).OrderByDescending(r => When(r.m)).ThenBy(r => r.f.ObtainedAtSeconds ?? 0))
             {
-                var when = f.ObtainedAtSeconds is float t ? (f.TimeExact ? Pretty.Clock(t) : $"{L.T("vers", "around", "hacia los")} {Pretty.Clock(t)}") : "?";
+                var when = f.ObtainedAtSeconds is float t ? (f.TimeExact ? Pretty.Clock(t) : $"{L.T("around", "около")} {Pretty.Clock(t)}") : "?";
                 string source;
                 if (team && string.IsNullOrEmpty(f.Teammate))
                 {
-                    source = $"<span class=\"items\">{L.T("coffre hors de ta vue", "chest out of your sight", "cofre fuera de tu vista")}</span>";
+                    source = $"<span class=\"items\">{L.T("chest out of your sight", "сундук вне поля зрения")}</span>";
                 }
                 else if (!f.SourceIsChest)
                 {
-                    source = $"<span class=\"warn\">{H(f.SourceLabel)} · {L.T("fiabilité faible", "low reliability", "fiabilidad baja")}</span>";
+                    source = $"<span class=\"warn\">{H(f.SourceLabel)} · {L.T("low reliability", "низкая достоверность")}</span>";
                 }
                 else
                 {
                     source = H(f.SourceLabel) + (f.SourceCertain ? "" : $" <span class=\"items\">({Pretty.Likely})</span>");
                 }
-                var who = !team ? L.T("toi", "you", "tú")
-                    : TeamIcon + (string.IsNullOrEmpty(f.Teammate) ? L.T("un coéquipier", "a teammate", "un compañero") : H(f.Teammate));
+                var who = !team ? L.T("you", "ты")
+                    : TeamIcon + (string.IsNullOrEmpty(f.Teammate) ? L.T("a teammate", "союзник") : H(f.Teammate));
                 var cls = team ? "team" : f.SourceIsChest ? "" : "unusual";
                 var stars = f.FromGoldenChest ? "<span class=\"gold\">★★</span>" : "<span class=\"star\">★</span>";
                 sb.Append($"<tr{(cls.Length > 0 ? $" class=\"{cls}\"" : "")}><td class=\"nw num items\">{L.DateTimeShort(When(m))}</td><td>{stars} <b>{H(f.DisplayName)}</b></td><td class=\"nw num\">{when}</td><td>{source}</td><td class=\"by\">{who}</td></tr>");
@@ -391,7 +389,7 @@ public static class ReportWriter
         }
 
         // Latest matches.
-        sb.Append($"<section><h2 class=\"pirate\">{L.T("Dernières parties", "Latest matches", "Últimas partidas")}</h2><div class=\"card\"><table><tr><th>{L.T("Date", "Date", "Fecha")}</th><th>{L.T("Mode", "Mode", "Modo")}</th><th>{L.T("Place", "Placement", "Puesto")}</th><th style=\"text-align:right\">{L.T("Coffres", "Chests", "Cofres")}</th><th>{L.T("Trésor", "Treasure", "Tesoro")}</th></tr>");
+        sb.Append($"<section><h2 class=\"pirate\">{L.T("Latest matches", "Последние матчи")}</h2><div class=\"card\"><table><tr><th>{L.T("Date", "Дата")}</th><th>{L.T("Mode", "Режим")}</th><th>{L.T("Placement", "Место")}</th><th style=\"text-align:right\">{L.T("Chests", "Сундуки")}</th><th>{L.T("Treasure", "Сокровище")}</th></tr>");
         foreach (var m in matches.Take(100))
         {
             var treasure = string.Join("<br>", m.TreasureFinds.Select(f => $"<span class=\"{(f.FromGoldenChest ? "gold" : "star")}\">{(f.FromGoldenChest ? "★★" : "★")} {H(f.DisplayName)}</span>"))
@@ -403,9 +401,8 @@ public static class ReportWriter
 
         var script = """<script>(function(){var k='chestcounter-showteam',b=document.getElementById('showteam');var on=false;try{on=localStorage.getItem(k)==='1'}catch(e){}function set(v){document.body.classList.toggle('showteam',v);if(b)b.checked=v}set(on);if(b)b.addEventListener('change',function(){set(b.checked);try{localStorage.setItem(k,b.checked?'1':'0')}catch(e){}})})();</script>""";
         sb.Append(L.T(
-            "<footer>Compte les coffres que tu as ouverts ou détruits toi-même, d'après tes replays (« rediffusions » dans Fortnite), analysés après chaque partie. Les caisses de munitions et de nourriture ne sont pas comptées. ★★ = coffre doré de la chasse au trésor, détecté de façon certaine. ★ = trésor reçu grâce à un de tes coffres (moment exact), nommé quand l'objet est identifiable. L'icône équipe marque un trésor trouvé par un coéquipier (estimation : déduit des trésors que tu reçois sans avoir ouvert de coffre, car la chasse au trésor les partage avec toute l'équipe) ; il n'entre pas dans tes totaux.</footer>",
             "<footer>Counts the chests you opened or destroyed yourself, from your replays, analyzed after each match. Ammo boxes and food boxes are not counted. ★★ = golden treasure hunt chest, detected for sure. ★ = treasure received from one of your own chests (exact moment), named when the item can be identified. The team icon marks a treasure found by a teammate (estimate: deduced from the treasures you receive without opening a chest, as the treasure hunt shares them with the whole team); it is not in your totals.</footer>",
-            "<footer>Cuenta los cofres que has abierto o destruido tú mismo, a partir de tus repeticiones, analizadas después de cada partida. Las cajas de munición y de comida no se cuentan. ★★ = cofre dorado de la búsqueda del tesoro, detectado con seguridad. ★ = tesoro recibido de uno de tus cofres (momento exacto), con nombre cuando el objeto se puede identificar. El icono de equipo marca un tesoro encontrado por un compañero (estimación: deducido de los tesoros que recibes sin abrir un cofre, ya que la búsqueda del tesoro los comparte con todo el equipo); no cuenta en tus totales.</footer>"));
+            "<footer>Считаются сундуки, которые ты сам открыл или разрушил, по твоим повторам, после каждого матча. Ящики с боеприпасами и ящики с едой не считаются. ★★ = золотой сундук охоты за сокровищами, определён точно. ★ = сокровище, полученное из твоего собственного сундука (точный момент); название указано, когда предмет удаётся определить. Значок команды отмечает сокровище, найденное союзником (оценка: выводится из сокровищ, которые ты получаешь, не открывая сундук, так как охота за сокровищами делит их на всю команду); в твои итоги оно не входит.</footer>"));
         sb.Append(script).Append("</main></body></html>");
         return sb.ToString();
     }
@@ -418,9 +415,8 @@ public static class ReportWriter
         }
         var pct = p.Total > 0 ? (int)Math.Round(100.0 * p.Done / p.Total) : 0;
         return L.T(
-            $"""<div class="loading"><div class="spin"></div><div class="grow"><b>Analyse de tes replays… {p.Done} / {p.Total}</b><div class="pbar"><i style="width:{pct}%"></i></div><span class="muted">Cette page se met à jour toute seule : les chiffres ci-dessous augmentent au fil de la lecture des replays.</span></div></div>""",
             $"""<div class="loading"><div class="spin"></div><div class="grow"><b>Analyzing your replays… {p.Done} / {p.Total}</b><div class="pbar"><i style="width:{pct}%"></i></div><span class="muted">This page updates by itself: the numbers below grow as the replays are read.</span></div></div>""",
-            $"""<div class="loading"><div class="spin"></div><div class="grow"><b>Analizando tus repeticiones… {p.Done} / {p.Total}</b><div class="pbar"><i style="width:{pct}%"></i></div><span class="muted">Esta página se actualiza sola: las cifras de abajo aumentan a medida que se leen las repeticiones.</span></div></div>""");
+            $"""<div class="loading"><div class="spin"></div><div class="grow"><b>Анализирую твои повторы… {p.Done} / {p.Total}</b><div class="pbar"><i style="width:{pct}%"></i></div><span class="muted">Страница обновляется сама: числа ниже растут по мере чтения повторов.</span></div></div>""");
     }
 
     private static string ProfilesLine(IReadOnlyList<Profile> profiles, string player)
@@ -430,7 +426,7 @@ public static class ReportWriter
         {
             return "";
         }
-        return $"""<div class="profiles muted">{L.T("Autres profils sur ce PC : ", "Other profiles on this PC: ", "Otros perfiles en este PC: ")}{string.Join(", ", others)} · {L.T("« Changer de profil » dans le compteur", "\"Switch profile\" in the counter", "«Cambiar de perfil» en el contador")}</div>""";
+        return $"""<div class="profiles muted">{L.T("Other profiles on this PC: ", "Другие профили на этом ПК: ")}{string.Join(", ", others)} · {L.T("\"Switch profile\" in the counter", "«Сменить профиль» в счётчике")}</div>""";
     }
 
     /// <summary>Rewrites only the OBS overlay page (called on every live update).</summary>
@@ -456,7 +452,7 @@ public static class ReportWriter
         }
         return $$"""
             <!doctype html><html lang="{{L.Code}}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="10">
-            <title>{{L.T("Overlay coffres", "Chest overlay", "Overlay de cofres")}}</title>
+            <title>{{L.T("Chest overlay", "Оверлей сундуков")}}</title>
             <style>
             html,body{margin:0;background:transparent;color:#e2e2e8;font:500 16px/1.3 "Segoe UI",system-ui,sans-serif}
             .box{display:inline-block;min-width:260px;padding:14px 18px 12px;border-radius:16px;background:rgba(18,18,22,.86);border:1px solid #3a3a42;text-shadow:0 1px 3px rgba(0,0,0,.6)}
@@ -472,7 +468,7 @@ public static class ReportWriter
             .row{display:contents}.row span{font-size:13px;font-weight:600;color:#82828e}.row b{font-weight:500}
             .row.t b{color:#c4a0ff}.row small{font-size:11px;font-weight:600;color:#82828e}
             </style></head><body><div class="box">
-            <div class="head"><span>{{L.T("COFFRES", "CHESTS", "COFRES")}}</span>{{(v.Badge != null ? $"<span class=\"live\">{H(v.Badge)}</span>" : "")}}</div>
+            <div class="head"><span>{{L.T("CHESTS", "СУНДУКИ")}}</span>{{(v.Badge != null ? $"<span class=\"live\">{H(v.Badge)}</span>" : "")}}</div>
             <div class="counters">
               <div><span class="big total">{{H(v.Total)}}</span><span class="cap">total</span></div>
               <div class="sep"></div>
@@ -486,7 +482,7 @@ public static class ReportWriter
     public static string Csv(TrackerData data)
     {
         var sb = new StringBuilder();
-        sb.AppendLine(L.T("date;mode;joueur;place;joueurs;coffres;caisses_munitions;tresors;fichier", "date;mode;player;placement;players;chests;ammo_boxes;treasures;file", "fecha;modo;jugador;puesto;jugadores;cofres;cajas_municion;tesoros;archivo"));
+        sb.AppendLine(L.T("date;mode;player;placement;players;chests;ammo_boxes;treasures;file", "дата;режим;игрок;место;игроков;сундуки;ящики_с_боеприпасами;сокровища;файл"));
 
         foreach (var m in data.Matches.OrderBy(When))
         {

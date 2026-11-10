@@ -653,7 +653,7 @@ public sealed class ReplayAnalyzer : FortniteReplayReader.ReplayReader
             {
                 foreach (var se in _searches.Where(x => x.Time >= ex.Value - 6 && x.Time <= ex.Value + 3).OrderBy(x => x.Time))
                 {
-                    Console.Error.WriteLine($"DBG nearhandler {se.Time,7:F1}s (Δ{se.Time - ex.Value:+0.0;-0.0}) {CleanName(se.Label)}{(se.Destroyed ? " DÉTRUIT" : "")} by {(se.SearcherPawn is uint sp ? NameOfPawn(sp) : "?")}{(se.SearcherPawn is uint tp2 && targetPawns.Contains(tp2) ? " (MOI)" : "")}");
+                    Console.Error.WriteLine($"DBG nearhandler {se.Time,7:F1}s (Δ{se.Time - ex.Value:+0.0;-0.0}) {CleanName(se.Label)}{(se.Destroyed ? " DESTROYED" : "")} by {(se.SearcherPawn is uint sp ? NameOfPawn(sp) : "?")}{(se.SearcherPawn is uint tp2 && targetPawns.Contains(tp2) ? " (ME)" : "")}");
                 }
             }
             foreach (var pz in _prizes)
@@ -884,16 +884,16 @@ public static class TreasureNames
 {
     /// <summary>Key prefix of a treasure whose prize id is not in the replay ("Inconnu:" before version 1.1).</summary>
     public const string UnknownPrefix = "Unknown:";
-    public const string UnknownGizmoFr = "Gizmo de trésor", UnknownGizmoEn = "Treasure gizmo", UnknownGizmoEs = "Artilugio de tesoro";
+    public const string UnknownGizmoFr = "Gizmo de trésor" /* stored key */, UnknownGizmoEn = "Treasure gizmo", UnknownGizmoRu = "Устройство для сокровищ";
     private const string OldUnknownPrefix = "Inconnu:";
 
     /// <summary>Prize ids whose reward is known, in the chosen language (built in: nothing to fill in by hand).</summary>
     private static string? KnownPrize(string id) => id.ToLowerInvariant() switch
     {
-        "delilahprize:dpid_item1" => L.T("Gantelets d'A$AP Rocky en or massif (pioche) ?", "A$AP Rocky solid gold gauntlets (pickaxe) ?", "Guanteletes de oro macizo de A$AP Rocky (pico) ?"),
-        "delilahprize:dpid_item2" => L.T("Plunder in Paradise (écran de chargement)", "Plunder in Paradise (loading screen)", "Plunder in Paradise (pantalla de carga)"),
-        "delilahprize:dpid_item3" => L.T("Mercedes-AMG G 63 (véhicule) ?", "Mercedes-AMG G 63 (vehicle) ?", "Mercedes-AMG G 63 (vehículo) ?"),
-        "delilahprize:dpid_item4" => L.T("No Trespassing (piste musicale)", "No Trespassing (music track)", "No Trespassing (pista musical)"),
+        "delilahprize:dpid_item1" => L.T("A$AP Rocky solid gold gauntlets (pickaxe) ?", "Золотые перчатки A$AP Rocky (кирка) ?"),
+        "delilahprize:dpid_item2" => L.T("Plunder in Paradise (loading screen)", "Plunder in Paradise (экран загрузки)"),
+        "delilahprize:dpid_item3" => L.T("Mercedes-AMG G 63 (vehicle) ?", "Mercedes-AMG G 63 (транспорт) ?"),
+        "delilahprize:dpid_item4" => L.T("No Trespassing (music track)", "No Trespassing (музыкальный трек)"),
         _ => null,
     };
 
@@ -910,10 +910,10 @@ public static class TreasureNames
             {
                 // Not a golden chest prize (those carry their id): one of the treasure hunt gizmos (golden
                 // firework, portable extractor, locators, extraction accelerator), exact one not in the replay.
-                return L.T(UnknownGizmoFr, UnknownGizmoEn, UnknownGizmoEs);
+                return L.T(UnknownGizmoEn, UnknownGizmoRu);
             }
             // A prize whose reward is not known yet: its id means nothing to the player.
-            return L.T("Récompense de coffre doré", "Golden chest reward", "Recompensa de cofre dorado");
+            return L.T("Golden chest reward", "Награда из золотого сундука");
         }
 
         var i = item.ToLowerInvariant();

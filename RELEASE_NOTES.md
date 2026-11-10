@@ -15,34 +15,17 @@ Windows may show *"Windows protected your PC"* (unsigned exe): *More info → Ru
 
 ---
 
-**Français** · Télécharge **`ChestCounter.exe`** ci-dessous, lance-le et suis la courte installation. Rien à installer. Tu l'utilises déjà ? Appuie sur **U** dans le compteur : ton historique et tes réglages sont conservés.
+**Русский** · Скачай **`ChestCounter.exe`** ниже, запусти и пройди короткую настройку. Устанавливать ничего не нужно. Уже пользуешься? Нажми **U** в счётчике: история и настройки сохранятся.
 
-> **Active d'abord les rediffusions dans Fortnite** : *Paramètres → Jeu → Rediffusions → Enregistrer les rediffusions : Activé*. L'outil lit uniquement ces fichiers replay : aucune modification du jeu, aucun accès à la mémoire du jeu. Son seul accès réseau est la vérification d'une nouvelle version sur GitHub (désactivable).
+> **Сначала включи запись повторов в Fortnite**: *Настройки → Игра → Повторы → Записывать повторы: Вкл.* Программа только читает файлы повторов: никаких изменений игры, никакого доступа к памяти игры. Единственное обращение к сети — проверка новой версии на GitHub (можно отключить).
 
-**Nouveautés de la 1.4.0**
-- **Nouvel overlay par défaut**, plus beau et transparent. L'ancien reste disponible : *Réglages → Style de l'overlay → classique*
-- **Comptage des coffres corrigé** : il était faux dans certains cas. Les replays encore sur ton PC sont réanalysés et tes compteurs réajustés
-- **Nouvelle console**, plus simple et plus intuitive à utiliser
-- **Nouveau design du rapport**
-- **Trésors de l'équipe** : affichables ou non dans le rapport (une estimation, parfois inexacte)
-- **L'overlay peut être désactivé** complètement dans les réglages
-- Merci à koiseka pour sa contribution (#6)
+**Что нового в 1.4.0**
+- **Новый оверлей по умолчанию**, красивее и прозрачный. Прежний остался: *Настройки → Стиль оверлея → классический*
+- **Исправлен подсчёт сундуков**: в некоторых случаях он был неверным. Повторы, оставшиеся на ПК, анализируются заново, счётчики пересчитываются
+- **Новая консоль**, проще и понятнее
+- **Новый дизайн отчёта**
+- **Сокровища команды**: можно показать или скрыть в отчёте (оценка, иногда неточная)
+- **Оверлей можно полностью отключить** в настройках
+- Спасибо koiseka за вклад (#6)
 
-Windows peut afficher « Windows a protégé votre ordinateur » (exe non signé) : *Informations complémentaires → Exécuter quand même*.
-
----
-
-**Español** · Descarga **`ChestCounter.exe`** aquí abajo, ejecútalo y sigue la breve configuración. No hay nada que instalar. ¿Ya lo usas? Pulsa **U** en el contador: tu historial y tus ajustes se conservan.
-
-> **Activa primero las repeticiones en Fortnite**: *Ajustes → Juego → Repeticiones → Grabar repeticiones: Activado*. La herramienta solo lee esos archivos de repetición: ninguna modificación del juego, ningún acceso a la memoria del juego. Su único acceso a la red es la comprobación de una nueva versión en GitHub (se puede desactivar).
-
-**Novedades de la 1.4.0**
-- **Nuevo overlay por defecto**, más bonito y transparente. El anterior sigue disponible: *Ajustes → Estilo del overlay → clásico*
-- **Recuento de cofres corregido**: era incorrecto en algunos casos. Las repeticiones que siguen en tu PC se analizan de nuevo y tus contadores se ajustan
-- **Nueva consola**, más sencilla e intuitiva de usar
-- **Nuevo diseño del informe**
-- **Tesoros del equipo**: se pueden mostrar u ocultar en el informe (una estimación, a veces inexacta)
-- **El overlay se puede desactivar** por completo en los ajustes
-- Gracias a koiseka por su contribución (#6)
-
-Windows puede mostrar «Windows protegió tu PC» (exe sin firmar): *Más información → Ejecutar de todas formas*.
+Windows может показать *«Система Windows защитила ваш компьютер»* (exe без подписи): *Подробнее → Выполнить в любом случае*.

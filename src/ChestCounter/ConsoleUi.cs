@@ -345,7 +345,7 @@ public static class ConsoleUi
 /// <summary>Key help shown under menus, in the chosen language.</summary>
 public static class Keys
 {
-    public static string MenuHelp => L.T("↑ ↓ pour choisir, Entrée pour valider", "↑ ↓ to choose, Enter to confirm", "↑ ↓ para elegir, Intro para confirmar");
+    public static string MenuHelp => L.T("↑ ↓ to choose, Enter to confirm", "↑ ↓ — выбор, Enter — подтвердить");
 }
 
 /// <summary>A piece of text with its colors.</summary>

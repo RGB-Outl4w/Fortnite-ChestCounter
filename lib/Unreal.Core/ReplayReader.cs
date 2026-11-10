@@ -57,6 +57,14 @@ public abstract class ReplayReader<T> where T : Replay, new()
 
     public static float CurrentTime;
 
+    /// <summary>ChestCounter patch: set to make the parse in progress stop (checked at every frame and packet bunch).</summary>
+    public static volatile bool Cancel;
+
+    private static void ThrowIfCancelled()
+    {
+        if (Cancel) throw new OperationCanceledException("replay parsing cancelled");
+    }
+
     /// <summary>ChestCounter patch: true when the file ended in the middle of a chunk (replay still being written).</summary>
     public bool IsPartialReplay { get; protected set; }
     protected NetGuidCache _netGuidCache;
@@ -854,6 +862,7 @@ public abstract class ReplayReader<T> where T : Replay, new()
             archive.ReadInt32();
         }
 
+        ThrowIfCancelled();
         var timeSeconds = archive.ReadSingle();
         CurrentTime = timeSeconds;
         _logger?.LogDebug("ReadDemoFrameIntoPlaybackPackets at {}", timeSeconds);
@@ -2164,6 +2173,7 @@ public abstract class ReplayReader<T> where T : Replay, new()
         //var rejectedChannels = new Dictionary<uint, uint>();
         while (!bitReader.AtEnd())
         {
+            ThrowIfCancelled();
             // For demo backwards compatibility, old replays still have this bit
             if (bitReader.EngineNetworkVersion < EngineNetworkVersionHistory.HISTORY_ACKS_INCLUDED_IN_HEADER)
             {
