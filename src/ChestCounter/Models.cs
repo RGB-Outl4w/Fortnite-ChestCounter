@@ -46,6 +46,33 @@ public sealed class TreasureFind
     public string? Teammate { get; set; }
 }
 
+/// <summary>One addition made by hand to the number of chests (negative: chests removed).</summary>
+public sealed class ManualEntry
+{
+    /// <summary>Typed in the pencil's box.</summary>
+    public const string Hand = "hand";
+
+    /// <summary>From the matches of Fortnite's Career tab: a new estimate replaces the previous one.</summary>
+    public const string Estimate = "estimate";
+
+    /// <summary>What was added before the history existed (or by an older version): one entry, id "earlier".</summary>
+    public const string Earlier = "earlier";
+
+    public string Id { get; set; } = "";
+    public int Chests { get; set; }
+    public DateTime? AddedUtc { get; set; }
+    public string Kind { get; set; } = Hand;
+
+    /// <summary>Matches of the Career tab the estimate was made from.</summary>
+    public int? CareerMatches { get; set; }
+
+    /// <summary>
+    /// Start of the treasure week the player said these chests were opened in ("Opened this week"): they count in that
+    /// week's chances too, at the normal odds. Null = no week (season only).
+    /// </summary>
+    public DateTime? WeekFromUtc { get; set; }
+}
+
 /// <summary>Chests of one teammate in a match, as recorded in the player's own replay.</summary>
 public sealed class TeamChestCount
 {
@@ -145,6 +172,21 @@ public sealed class Config
     /// <summary>"prompt" (offer new versions), "auto" (install them) or "off" (never check GitHub).</summary>
     public string UpdateMode { get; set; } = "prompt";
 
+    /// <summary>Times shown in "local" time (the PC's time zone) or in "utc".</summary>
+    public string TimeZone { get; set; } = "local";
+
+    /// <summary>Clock of the times shown: "auto" (the Windows setting), "12" (10:54 PM) or "24" (22:54).</summary>
+    public string ClockFormat { get; set; } = "auto";
+
+    /// <summary>Applies the time settings to every time shown (<see cref="L.Shown"/>, <see cref="L.Clock"/>).</summary>
+    public void ApplyTimeSettings()
+    {
+        TimeZone = TimeZone == "utc" ? "utc" : "local";
+        ClockFormat = ClockFormat is "12" or "24" ? ClockFormat : "auto";
+        L.UtcTimes = TimeZone == "utc";
+        L.ClockFormat = ClockFormat;
+    }
+
     /// <summary>Notices of content.json the player closed (by id), so that they do not come back.</summary>
     public List<string> DismissedNotices { get; set; } = new();
 
@@ -196,6 +238,12 @@ public sealed class TrackerData
     /// </summary>
     public Dictionary<string, int> ManualChests { get; set; } = new();
 
+    /// <summary>
+    /// What was added by hand, entry by entry, per profile key (the pencil of "Chests in total"). Its sum is
+    /// <see cref="ManualChests"/>, which stays the figure used everywhere (and the one older versions read).
+    /// </summary>
+    public Dictionary<string, List<ManualEntry>> ManualHistory { get; set; } = new();
+
     /// <summary>Treasures ticked as obtained in the collection, per profile key (saved by the graphical window).</summary>
     public Dictionary<string, List<string>> Obtained { get; set; } = new();
 
@@ -204,6 +252,9 @@ public sealed class TrackerData
 
     /// <summary>Manual adjustment of the profile shown (filled by <see cref="Profiles.View"/>, not saved).</summary>
     [JsonIgnore] public int ManualAdjust { get; set; }
+
+    /// <summary>The additions by hand of the profile shown, entry by entry (set by <see cref="Profiles.View"/>).</summary>
+    [JsonIgnore] public List<ManualEntry> ManualEntries { get; set; } = new();
 
     /// <summary>Chests counted in the replays (what averages and treasure odds are based on).</summary>
     [JsonIgnore] public int CountedChests => Matches.Sum(m => m.ChestsOpened);

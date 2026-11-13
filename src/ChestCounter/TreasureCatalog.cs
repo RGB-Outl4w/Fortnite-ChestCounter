@@ -61,7 +61,13 @@ public static class TreasureCatalog
 
     /// <summary>The data in use (swapped as a whole when a newer content.json is accepted).</summary>
     private sealed record Data(int Revision, IReadOnlyList<TreasureOdds> Odds, TreasurePrize PirateShopAccess, IReadOnlyList<TreasureWeek> Weeks,
-        IReadOnlyList<TreasureHour> TreasureHours, IReadOnlyList<Notice> Notices);
+        IReadOnlyList<TreasureHour> TreasureHours, IReadOnlyList<Notice> Notices, string OddsSource, string HoursSource);
+
+    /// <summary>Where the odds were published (Epic Games), when content.json does not say.</summary>
+    public const string DefaultOddsSource = "https://x.com/FortniteStatus/status/2119202610322227327";
+
+    /// <summary>Where the Treasure Hour times come from, when content.json does not say.</summary>
+    public const string DefaultHoursSource = "https://fortnite.bot";
 
     private static volatile Data? _loaded;
 
@@ -78,6 +84,12 @@ public static class TreasureCatalog
     public static IReadOnlyList<TreasureWeek> Weeks => _data.Weeks;
     public static IReadOnlyList<TreasureHour> TreasureHours => _data.TreasureHours;
     public static IReadOnlyList<Notice> Notices => _data.Notices;
+
+    /// <summary>Page where Epic Games published the odds ("sources.odds" in content.json).</summary>
+    public static string OddsSource => _data.OddsSource;
+
+    /// <summary>Page the Treasure Hour times come from ("sources.treasureHours" in content.json).</summary>
+    public static string HoursSource => _data.HoursSource;
 
     /// <summary>
     /// Notices to show now. Notices of the original project's content are about its own versions and updates (and
@@ -235,7 +247,13 @@ public static class TreasureCatalog
 
             var pirate = Prize(root.GetProperty("pirateShop"));
             if (pirate.Kind != PirateShop) throw new InvalidDataException("pirateShop");
-            return new Data(revision, odds, pirate, weeks, hours, notices);
+
+            // Source links shown under "Your chances": https only, optional.
+            string Source(string name, string fallback) =>
+                root.TryGetProperty("sources", out var src) && src.TryGetProperty(name, out var v)
+                    ? (v.GetString() is { Length: <= 300 } url && Uri.TryCreate(url, UriKind.Absolute, out var u) && u.Scheme == Uri.UriSchemeHttps ? url : throw new InvalidDataException("sources." + name))
+                    : fallback;
+            return new Data(revision, odds, pirate, weeks, hours, notices, Source("odds", DefaultOddsSource), Source("treasureHours", DefaultHoursSource));
         }
         catch (Exception ex)
         {
@@ -255,6 +273,15 @@ public static class TreasureCatalog
 
     /// <summary>The week a moment falls in (null outside the hunt).</summary>
     public static TreasureWeek? WeekOf(DateTime utc) => Weeks.FirstOrDefault(w => utc >= w.From && utc < w.To);
+
+    /// <summary>Start of the treasure hunt (its first week): a chest opened before it could not give a treasure.</summary>
+    public static DateTime HuntStart => Weeks.Count > 0 ? Weeks[0].From : DateTime.MinValue;
+
+    /// <summary>
+    /// The week whose chances the report shows: the current one, or the last one once the hunt is over (null before
+    /// it starts).
+    /// </summary>
+    public static TreasureWeek? ShownWeek(DateTime utc) => WeekOf(utc) ?? Weeks.LastOrDefault(w => w.To <= utc);
 
     public static string KindName(string kind) => kind switch
     {
@@ -277,7 +304,14 @@ public static class TreasureCatalog
     /// Same, chest by chest: 1 − Π(1 − p × boost), each chest with the boost of the moment it was opened (Treasure
     /// Hours), plus <paramref name="plainChests"/> chests at the normal odds (added by hand: their time is unknown).
     /// </summary>
-    public static double AtLeastOnce(TreasureOdds odds, IEnumerable<DateTime> chestTimesUtc, long plainChests)
+    public static double AtLeastOnce(TreasureOdds odds, IEnumerable<DateTime> chestTimesUtc, long plainChests) =>
+        -double.ExpM1(LogNever(odds, chestTimesUtc, plainChests));
+
+    /// <summary>
+    /// Natural log of the chance of never having obtained it: Σ ln(1 − p × boost). Kept apart because the chance of
+    /// "at least once" rounds to exactly 1 for the common kinds, while this one still tells how far from 1 it is.
+    /// </summary>
+    public static double LogNever(TreasureOdds odds, IEnumerable<DateTime> chestTimesUtc, long plainChests)
     {
         var p = 1.0 / odds.OneIn;
         var sum = Math.Max(0, plainChests) * double.LogP1(-p);
@@ -285,7 +319,19 @@ public static class TreasureCatalog
         {
             sum += double.LogP1(-Math.Min(0.999, p * Boost(odds.Kind, t)));
         }
-        return -double.ExpM1(sum);
+        return sum;
+    }
+
+    /// <summary>How many of them on average with these chests: Σ p × boost (the same boosts as the chance).</summary>
+    public static double Expected(TreasureOdds odds, IEnumerable<DateTime> chestTimesUtc, long plainChests)
+    {
+        var p = 1.0 / odds.OneIn;
+        var sum = Math.Max(0, plainChests) * p;
+        foreach (var t in chestTimesUtc)
+        {
+            sum += Math.Min(0.999, p * Boost(odds.Kind, t));
+        }
+        return sum;
     }
 
     /// <summary>Chests needed to reach a given cumulative chance (0.5 = "one chance in two").</summary>

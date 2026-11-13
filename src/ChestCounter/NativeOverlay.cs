@@ -596,25 +596,17 @@ public static class NativeOverlay
 
     // ---- "hud" style: figures only, outlined like the game's own HUD, right-aligned under the minimap -------------
     //
-    //   [chest] 3 934        total (gold while a match is counted live)
-    //       Last • 14        last match / "● In a match • …" / "● Live • 12"
+    //  ● [chest] 3 934       total; the red dot while a match is in progress (gold while it is counted live)
+    //   Last     • 14        last finished match, kept during the next one
     //    Session • 83
     //      [star] 36         treasures
 
-    private sealed record HudRow(string Label, string Value, bool Dot);
+    private sealed record HudRow(string Label, string Value);
 
-    private static HudRow StateRow(OverlayView v)
-    {
-        if (v.CurrentLive && v.Current is { } cur && cur != "…")
-        {
-            return new HudRow(L.T("Live", "Live"), cur, true);
-        }
-        if (v.CurrentLive)
-        {
-            return new HudRow(L.T("In a match", "В матче"), "", true); // figures readable only at the end
-        }
-        return new HudRow(L.T("Last", "Последний"), v.Last ?? "—", false);
-    }
+    private static HudRow StateRow(OverlayView v) => new(L.T("Last", "Последний"), v.Last ?? "—");
+
+    /// <summary>The figures of the match in progress are readable (its chests are already in the total).</summary>
+    private static bool LiveFigures(OverlayView v) => v.CurrentLive && v.Current is { } cur && cur != "…";
 
     private static int Sc(double v) => (int)Math.Round(v * _scale);
 
@@ -634,12 +626,13 @@ public static class NativeOverlay
             var sessionLabel = L.T("Session", "Сессия");
             var rowsW = new[]
             {
-                Sc(14) + TextWidth(hdc, _fontHudSmall, state.Label + Sep + state.Value, out _hudSmallH),
+                TextWidth(hdc, _fontHudSmall, state.Label + Sep + state.Value, out _hudSmallH),
                 TextWidth(hdc, _fontHudSmall, sessionLabel + Sep + v.Session, out _),
                 v.Squad != null ? TextWidth(hdc, _fontHudSmall, OverlayModel.SquadLabel + Sep + v.Squad, out _) : 0,
                 Sc(22) + TextWidth(hdc, _fontHudSmall, v.Treasures, out _),
             }.Max();
-            w = lockW + pad + Math.Max(Sc(26) + Sc(8) + bigW, rowsW) + pad + Sc(14);
+            // Room for the in-match dot is always kept: the overlay does not widen when a match starts.
+            w = lockW + pad + Math.Max(Sc(18) + Sc(26) + Sc(8) + bigW, rowsW) + pad + Sc(14);
             h = pad + _hudBigH + (v.Squad != null ? 4 : 3) * (_hudSmallH + Sc(2)) + pad;
             w = Math.Max(_stableW, w);
             _stableW = w;
@@ -801,24 +794,25 @@ public static class NativeOverlay
         var left = _lockRect.Right;
         var y = pad;
         var state = StateRow(v);
-        var live = v.CurrentLive && state.Value.Length > 0;
+        var live = LiveFigures(v);
 
-        // Total, with the chest.
+        // Total, with the chest, and the red dot while a match is in progress.
         var bigW = TextWidth(hdc, _fontHudBig, v.Total, out _);
         Outlined(hdc, _fontHudBig, live ? gold : white, v.Total, left, y, right, y + _hudBigH, DT_RIGHT);
         var iw = Sc(26);
         var ih = Sc(22);
         var ix = right - bigW - Sc(8) - iw;
         Chest(hdc, ix, y + (_hudBigH - ih) / 2, iw, ih, gold, Rgb(224, 165, 38), ink, ink);
+        if (v.CurrentLive)
+        {
+            var d = Sc(11);
+            Disc(hdc, ix - Sc(7) - d, y + (_hudBigH - d) / 2, d, Rgb(255, 59, 48), ink, Math.Max(1, Sc(1.5)));
+        }
         y += _hudBigH + Sc(2);
 
-        // Last match (or the match in progress), session, treasures.
+        // Last finished match (also during the next one), session, treasures.
         var rowH = _hudSmallH;
-        var stateLeft = LabelValue(hdc, state.Label, state.Value, left, right, y, rowH, live ? gold : white);
-        if (state.Dot)
-        {
-            Disc(hdc, stateLeft - Sc(12), y + rowH / 2 - Sc(4), Sc(9), Rgb(255, 59, 48), ink, 1);
-        }
+        LabelValue(hdc, state.Label, state.Value, left, right, y, rowH, white);
         y += rowH + Sc(2);
         LabelValue(hdc, L.T("Session", "Сессия"), v.Session, left, right, y, rowH, white);
         y += rowH + Sc(2);

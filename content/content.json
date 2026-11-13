@@ -3,6 +3,10 @@
   "revision": 1,
   "updated": "2026-11-11",
   "about": "Treasure hunt data shown by Chest Counter (report, odds, collection). Edit it on main and raise 'revision': every counter picks it up at its next start. Schema in src/ChestCounter/TreasureCatalog.cs.",
+  "sources": {
+    "odds": "https://x.com/FortniteStatus/status/2119202610322227327",
+    "treasureHours": "https://fortnite.bot"
+  },
   "odds": [
     {
       "kind": "outfit",

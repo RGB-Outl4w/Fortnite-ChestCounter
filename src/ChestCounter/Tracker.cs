@@ -150,8 +150,8 @@ public sealed class Tracker
                 var mb = (file.Length / 1024 / 1024.0).ToString("F1", L.Culture);
                 var justEnded = DateTime.UtcNow - file.LastWriteTimeUtc < TimeSpan.FromMinutes(2);
                 Console.WriteLine(justEnded
-                    ? L.T($"[{DateTime.Now:HH:mm:ss}] Match over: analyzing the replay ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Матч окончен: анализирую повтор ({mb} МБ)…")
-                    : L.T($"[{DateTime.Now:HH:mm:ss}] Analyzing {file.Name} ({mb} MB)…", $"[{DateTime.Now:HH:mm:ss}] Анализирую {file.Name} ({mb} МБ)…"));
+                    ? L.T($"{L.Stamp} Match over: analyzing the replay ({mb} MB)…", $"{L.Stamp} Матч окончен: анализирую повтор ({mb} МБ)…")
+                    : L.T($"{L.Stamp} Analyzing {file.Name} ({mb} MB)…", $"{L.Stamp} Анализирую {file.Name} ({mb} МБ)…"));
                 Console.ResetColor();
             }
 
@@ -539,8 +539,8 @@ public sealed class Tracker
             _liveNotCounted = map != null && !GameModes.IsSeasonMap(map);
             Console.ForegroundColor = ConsoleColor.DarkGray;
             Console.WriteLine(_liveNotCounted
-                ? L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress in another mode (map {map}): it will not be counted.", $"[{DateTime.Now:HH:mm:ss}] Идёт матч в другом режиме (карта {map}): он не будет посчитан.")
-                : L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress… (its chests will be counted at the end)", $"[{DateTime.Now:HH:mm:ss}] Идёт матч… (сундуки будут подсчитаны в конце)"));
+                ? L.T($"{L.Stamp} Match in progress in another mode (map {map}): it will not be counted.", $"{L.Stamp} Идёт матч в другом режиме (карта {map}): он не будет посчитан.")
+                : L.T($"{L.Stamp} Match in progress… (its chests will be counted at the end)", $"{L.Stamp} Идёт матч… (сундуки будут подсчитаны в конце)"));
             Console.ResetColor();
             if (_liveNotCounted)
             {
@@ -588,7 +588,7 @@ public sealed class Tracker
         if (changed && LiveMatch != null)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {L.T("Match in progress", "Идёт матч")}: {L.Count(LiveMatch.ChestsOpened, "chest", "chests", "сундук", "сундука", "сундуков")}"
+            Console.WriteLine($"{L.Stamp} {L.T("Match in progress", "Идёт матч")}: {L.Count(LiveMatch.ChestsOpened, "chest", "chests", "сундук", "сундука", "сундуков")}"
                 + (LiveMatch.TreasureFinds.Count > 0 ? $", {L.Count(LiveMatch.TreasureFinds.Count, "treasure", "treasures", "сокровище", "сокровища", "сокровищ")}" : ""));
             Console.ResetColor();
         }
@@ -619,7 +619,7 @@ public sealed class Tracker
     private void PrintMatch(MatchRecord m, bool updated)
     {
         var total = Math.Max(0, Profiles.Counted(_data).Where(x => Profiles.Key(x) == Profiles.Key(m)).Sum(x => x.ChestsOpened) + Profiles.Manual(_data, Profiles.Key(m)));
-        var when = (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToLocalTime();
+        var when = L.Shown(m.MatchStartUtc ?? m.AnalyzedAtUtc);
 
         Console.ForegroundColor = ConsoleColor.Green;
         Console.Write($"   {(updated ? "↻" : "✔")} {L.T("Match of", "Матч от")} {L.DateTimeShort(when)}");
