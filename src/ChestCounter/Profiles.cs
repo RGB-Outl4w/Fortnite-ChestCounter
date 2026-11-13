@@ -13,7 +13,10 @@ public static class Profiles
     /// <summary>Stable key of a match's account: Epic id (survives a name change), else the display name.</summary>
     public static string Key(MatchRecord m) => !string.IsNullOrEmpty(m.EpicId) ? m.EpicId : m.PlayerName ?? "";
 
-    public static List<Profile> List(TrackerData d) => d.Matches
+    /// <summary>Matches that count (Battle Royale of the season): those of other modes saved by older versions are left out.</summary>
+    public static IEnumerable<MatchRecord> Counted(TrackerData d) => d.Matches.Where(GameModes.Counts);
+
+    public static List<Profile> List(TrackerData d) => Counted(d)
         .GroupBy(Key)
         .Select(g =>
         {
@@ -39,16 +42,72 @@ public static class Profiles
         var current = Current(d, c);
         if (current == null)
         {
-            return d;
+            return new TrackerData
+            {
+                Version = d.Version,
+                AnalyzerVersion = d.AnalyzerVersion,
+                CreatedUtc = d.CreatedUtc,
+                Matches = Counted(d).ToList(),
+                ProcessedFiles = d.ProcessedFiles,
+                ManualChests = d.ManualChests,
+                ManualAdjust = Manual(d, null),
+                Obtained = d.Obtained,
+                ObtainedIds = d.Obtained.GetValueOrDefault("") ?? new(),
+            };
         }
         return new TrackerData
         {
             Version = d.Version,
             AnalyzerVersion = d.AnalyzerVersion,
             CreatedUtc = d.CreatedUtc,
-            Matches = d.Matches.Where(m => Key(m) == current.Key).ToList(),
+            Matches = Counted(d).Where(m => Key(m) == current.Key).ToList(),
             ProcessedFiles = d.ProcessedFiles,
+            ManualChests = d.ManualChests,
+            ManualAdjust = Manual(d, current.Key),
+            Obtained = d.Obtained,
+            ObtainedIds = (d.Obtained.GetValueOrDefault(current.Key) ?? new()).Concat(d.Obtained.GetValueOrDefault("") ?? new()).Distinct().ToList(),
         };
+    }
+
+    /// <summary>
+    /// Chests added by hand for a profile. An adjustment made before the first match (no profile yet, key "") follows
+    /// the profile shown.
+    /// </summary>
+    public static int Manual(TrackerData d, string? profileKey) =>
+        d.ManualChests.GetValueOrDefault("") + (string.IsNullOrEmpty(profileKey) ? 0 : d.ManualChests.GetValueOrDefault(profileKey));
+
+    /// <summary>Ticks (or unticks) a treasure of the collection for the profile shown.</summary>
+    public static void SetObtained(TrackerData d, Config c, string prizeId, bool on)
+    {
+        var key = Current(d, c)?.Key ?? "";
+        if (!d.Obtained.TryGetValue(key, out var list))
+        {
+            d.Obtained[key] = list = new List<string>();
+        }
+        list.Remove(prizeId);
+        if (on)
+        {
+            list.Add(prizeId);
+        }
+        if (key.Length > 0 && d.Obtained.TryGetValue("", out var early))
+        {
+            early.Remove(prizeId); // ticked before the first match: now the profile's
+        }
+    }
+
+    /// <summary>Sets the manual adjustment of the profile shown (0 removes it).</summary>
+    public static void SetManual(TrackerData d, Config c, int chests)
+    {
+        var key = Current(d, c)?.Key ?? "";
+        d.ManualChests.Remove("");
+        if (chests == 0)
+        {
+            d.ManualChests.Remove(key);
+        }
+        else
+        {
+            d.ManualChests[key] = chests;
+        }
     }
 
     public static string Describe(Profile p) =>

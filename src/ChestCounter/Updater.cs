@@ -78,7 +78,7 @@ public static class ReleaseNotes
 /// <summary>
 /// Checks the latest GitHub release and replaces ChestCounter.exe with it. The running exe is renamed (Windows allows
 /// that), the new one takes its place and is started; the old file is deleted at the next launch.
-/// This is the only network access of the tool, and it can be turned off in the settings.
+/// Can be turned off in the settings (the only other network access: the treasure pictures, downloaded once).
 /// </summary>
 public static class Updater
 {

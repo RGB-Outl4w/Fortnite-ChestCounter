@@ -43,6 +43,7 @@ public sealed class Tracker
         _config = config;
         _data = data;
 
+        // Matches of other modes saved by older versions (OG, Reload, LTM...): no longer counted (kept in the file).
         // Before version 1.1, matches of other accounts were rejected ("autre joueur"): they now get their own profile.
         foreach (var key in _data.ProcessedFiles.Where(kv => kv.Value.StartsWith("autre joueur", StringComparison.Ordinal)).Select(kv => kv.Key).ToList())
         {
@@ -65,6 +66,12 @@ public sealed class Tracker
         GC.Collect(GC.MaxGeneration, GCCollectionMode.Aggressive, blocking: true, compacting: true);
         GC.WaitForPendingFinalizers();
     }
+
+    /// <summary>Called after each replay of a scan (the window's actions are run there during a long batch).</summary>
+    public Action? BetweenFiles { get; set; }
+
+    /// <summary>True when the counter is quitting: a scan stops after the replay being read.</summary>
+    public Func<bool>? StopRequested { get; set; }
 
     public static string FileKey(FileInfo f) => $"{f.Name}|{f.Length}|{f.LastWriteTimeUtc.Ticks}";
 
@@ -150,9 +157,20 @@ public sealed class Tracker
 
             var outcome = Process(file);
             outcomes.Add(outcome);
+            if (_liveFile == file.FullName)
+            {
+                ClearLive(); // read (counted, skipped or unreadable): the match is over, whatever the outcome
+            }
             if (!batch)
             {
                 PrintOutcome(outcome);
+            }
+            // A long batch (first launch, new analysis version): the window stays usable between two replays,
+            // and closing the counter stops it (the rest is analyzed at the next launch).
+            BetweenFiles?.Invoke();
+            if (StopRequested?.Invoke() == true)
+            {
+                break;
             }
         }
 
@@ -258,13 +276,14 @@ public sealed class Tracker
 
         record.ReplayFile = file.Name;
 
-        if (!record.IsBattleRoyale)
+        if (GameModes.WhyNot(record) is { } notCounted)
         {
-            // Also drop a record left by an older version of the tool for this replay.
+            // Only Battle Royale on the season's map counts (no OG, Reload, LTM, Creative...). Also drop a record left
+            // by an older version of the tool for this replay.
             _data.Matches.RemoveAll(m => m.SessionId == record.SessionId);
-            _data.ProcessedFiles[key] = "autre mode";
+            _data.ProcessedFiles[key] = "autre mode: " + (record.Playlist ?? "?");
             _store.SaveData(_data);
-            return new Outcome(Skipped: L.T("not a Battle Royale match (Creative / other mode)", "не матч «Королевской битвы» (творческий / другой режим)"));
+            return new Outcome(Skipped: L.T($"not counted: {notCounted}", $"не посчитано: {notCounted}"));
         }
 
         var existing = _data.Matches.FirstOrDefault(m => m.SessionId == record.SessionId);
@@ -322,8 +341,23 @@ public sealed class Tracker
         }
 
         var m = o.Match!;
-        PrintMatch(m, o.Updated);
         var current = Profiles.Current(_data, _config);
+        // A match that has just ended on another account (several accounts on this PC, or a new one): that is the
+        // account being played now, the counter follows it.
+        var end = (m.MatchStartUtc ?? m.AnalyzedAtUtc).AddSeconds(m.DurationSeconds ?? 0);
+        if (current != null && Profiles.Key(m) != current.Key && !o.Updated && DateTime.UtcNow - end < TimeSpan.FromMinutes(15))
+        {
+            _config.Profile = Profiles.Key(m);
+            try { _store.SaveConfig(_config); } catch { /* ignore */ }
+            PrintMatch(m, o.Updated);
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            var who = m.PlayerName ?? L.T("unknown account", "неизвестный аккаунт");
+            Console.WriteLine(L.T($"   Match played on the account {who}: the counter now shows its profile (\"Switch profile\" on the home tab to go back to {current.Name}).",
+                $"   Матч сыгран на аккаунте {who}: счётчик теперь показывает его профиль («Сменить профиль» на главной вкладке, чтобы вернуться к {current.Name})."));
+            Console.ResetColor();
+            return;
+        }
+        PrintMatch(m, o.Updated);
         if (current != null && Profiles.Key(m) != current.Key)
         {
             Console.ForegroundColor = ConsoleColor.DarkYellow;
@@ -366,7 +400,7 @@ public sealed class Tracker
         if (skipped > 0)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(L.T($"    {skipped} skipped: Creative modes, matches already counted or incomplete replays.", $"    Пропущено: {skipped} (творческие режимы, уже посчитанные матчи или неполные повторы)."));
+            Console.WriteLine(L.T($"    {skipped} skipped: modes other than the season's Battle Royale (OG, Creative, limited-time modes…), matches already counted or incomplete replays.", $"    Пропущено: {skipped} (режимы, кроме «Королевской битвы» текущего сезона: OG, творческий, временные режимы…, уже посчитанные матчи или неполные повторы)."));
             Console.ResetColor();
         }
         if (errors.Count > 0)
@@ -445,10 +479,16 @@ public sealed class Tracker
     public MatchRecord? LiveMatch { get; private set; }
 
     /// <summary>True while a replay is being recorded (a match is in progress).</summary>
-    public bool IsLive => _liveFile != null;
+    public bool IsLive => _liveFile != null && !_liveNotCounted;
+
+    /// <summary>The replay being recorded is not on the season's map (Creative, OG...): not shown as a match in progress.</summary>
+    private bool _liveNotCounted;
+    private bool _liveMapKnown;
 
     private void ClearLive()
     {
+        _liveNotCounted = false;
+        _liveMapKnown = false;
         _liveFile = null;
         _liveSize = -1;
         LiveMatch = null;
@@ -484,9 +524,32 @@ public sealed class Tracker
             ClearLive();
             _liveFile = file.FullName;
             started = true;
+        }
+
+        // The map is in the replay header, readable from the first seconds: a match elsewhere than on the season's map
+        // (Creative, OG...) is not a match in progress for the counter.
+        if (!_liveMapKnown)
+        {
+            var map = ReplayHeaderProbe.Map(file.FullName);
+            if (map == null && !started)
+            {
+                return false; // header not written yet: try again at the next check
+            }
+            _liveMapKnown = map != null;
+            _liveNotCounted = map != null && !GameModes.IsSeasonMap(map);
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine(L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress… (its chests will be counted at the end)", $"[{DateTime.Now:HH:mm:ss}] Идёт матч… (сундуки будут подсчитаны в конце)"));
+            Console.WriteLine(_liveNotCounted
+                ? L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress in another mode (map {map}): it will not be counted.", $"[{DateTime.Now:HH:mm:ss}] Идёт матч в другом режиме (карта {map}): он не будет посчитан.")
+                : L.T($"[{DateTime.Now:HH:mm:ss}] Match in progress… (its chests will be counted at the end)", $"[{DateTime.Now:HH:mm:ss}] Идёт матч… (сундуки будут подсчитаны в конце)"));
             Console.ResetColor();
+            if (_liveNotCounted)
+            {
+                return true;
+            }
+        }
+        if (_liveNotCounted)
+        {
+            return started;
         }
 
         // Fortnite writes the encryption key only at the end of the match: until then the data cannot be read,
@@ -520,8 +583,8 @@ public sealed class Tracker
         _liveParsedUtc = DateTime.UtcNow;
 
         var before = LiveMatch;
-        LiveMatch = record;
-        var changed = before?.ChestsOpened != LiveMatch?.ChestsOpened || before?.TreasureFinds.Count != LiveMatch?.TreasureFinds.Count || (before == null) != (LiveMatch == null);
+        LiveMatch = GameModes.Counts(record) ? record : null; // a match in another mode adds nothing
+        var changed = before?.ChestsOpened != LiveMatch?.ChestsOpened || before?.TeamChestsOpened != LiveMatch?.TeamChestsOpened || before?.TreasureFinds.Count != LiveMatch?.TreasureFinds.Count || (before == null) != (LiveMatch == null);
         if (changed && LiveMatch != null)
         {
             Console.ForegroundColor = ConsoleColor.DarkGray;
@@ -555,7 +618,7 @@ public sealed class Tracker
 
     private void PrintMatch(MatchRecord m, bool updated)
     {
-        var total = _data.Matches.Where(x => Profiles.Key(x) == Profiles.Key(m)).Sum(x => x.ChestsOpened);
+        var total = Math.Max(0, Profiles.Counted(_data).Where(x => Profiles.Key(x) == Profiles.Key(m)).Sum(x => x.ChestsOpened) + Profiles.Manual(_data, Profiles.Key(m)));
         var when = (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToLocalTime();
 
         Console.ForegroundColor = ConsoleColor.Green;
@@ -568,6 +631,21 @@ public sealed class Tracker
             + (destroyed > 0 ? L.T($" ({destroyed} destroyed)", $" (разрушено: {destroyed})") : ""));
         Console.ResetColor();
         Console.WriteLine($"  →  total{L.T(": ", ": ")}{L.N(total)}");
+
+        if (m.TeamChestsOpened > 0)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkCyan;
+            var mates = string.Join(", ", m.TeamChests.Where(x => x.Chests > 0).OrderByDescending(x => x.Chests).Select(x => $"{x.Name} {L.N(x.Chests)}"));
+            Console.WriteLine($"   + {L.T("Squad", "Отряд")}{L.T(": ", ": ")}{L.Count(m.TeamChestsOpened, "chest", "chests", "сундук", "сундука", "сундуков")} ({mates})");
+            Console.ResetColor();
+        }
+        if (m.VehicleChestsMissing)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkYellow;
+            Console.WriteLine(L.T($"   ⚠ Fortnite did not record what your vehicle destroyed in this replay (loot of {m.UnrecordedVehicleLoot} chests with no chest recorded): they cannot be counted. See the help tab.",
+                $"   ⚠ Fortnite не записал, что разрушил твой транспорт в этом повторе (добыча из {m.UnrecordedVehicleLoot} сундуков без записанного сундука): их нельзя посчитать. См. вкладку «Справка»."));
+            Console.ResetColor();
+        }
 
         foreach (var find in m.TreasureFinds)
         {
@@ -594,16 +672,21 @@ public sealed class Tracker
     public void PrintSummary()
     {
         var profile = Profiles.Current(_data, _config);
-        var matches = Profiles.View(_data, _config).Matches;
-        var chests = matches.Sum(m => m.ChestsOpened);
+        var view = Profiles.View(_data, _config);
+        var matches = view.Matches;
+        var chests = view.CountedChests;
         var treasures = matches.Sum(m => m.TreasureFinds.Count);
         var sb = new StringBuilder();
         if (profile != null)
         {
             sb.Append($"{profile.Name}   |   ");
         }
-        sb.Append(L.T($"Matches: {L.N(matches.Count)}   |   Chests: {L.N(chests)}   |   Treasures: {L.N(treasures)}",
-            $"Матчи: {L.N(matches.Count)}   |   Сундуки: {L.N(chests)}   |   Сокровища: {L.N(treasures)}"));
+        sb.Append(L.T($"Matches: {L.N(matches.Count)}   |   Chests: {L.N(view.TotalChests)}   |   Treasures: {L.N(treasures)}",
+            $"Матчи: {L.N(matches.Count)}   |   Сундуки: {L.N(view.TotalChests)}   |   Сокровища: {L.N(treasures)}"));
+        if (view.TeamChests > 0)
+        {
+            sb.Append($"   |   {L.T("Squad", "Отряд")}{L.T(": ", ": ")}{L.N(view.SquadChests)}");
+        }
         if (matches.Count > 0)
         {
             var avg = ((double)chests / matches.Count).ToString("F1", L.Culture);
@@ -619,6 +702,32 @@ public sealed class Tracker
 /// <summary>Reads just enough of the replay file header to know whether the match is still being recorded.</summary>
 public static class ReplayHeaderProbe
 {
+    /// <summary>
+    /// The map of the match (e.g. /Delilah/Maps/Delilah_Terrain), from the header chunk: written at the start of the
+    /// recording, never encrypted. Null when it cannot be read (yet).
+    /// </summary>
+    public static string? Map(string path)
+    {
+        try
+        {
+            byte[] bytes;
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+            {
+                // The header is the first chunk: a few kilobytes are enough.
+                bytes = new byte[Math.Min(fs.Length, 256 * 1024)];
+                fs.ReadExactly(bytes);
+            }
+            using var ms = new MemoryStream(bytes, writable: false);
+            var reader = new FortniteReplayReader.ReplayReader(null, Unreal.Core.Models.Enums.ParseMode.EventsOnly);
+            var replay = reader.ReadReplay(ms);
+            return replay.Header?.LevelNamesAndTimes?.Select(l => l.Item1).FirstOrDefault(l => !string.IsNullOrEmpty(l));
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private const uint FileMagic = 0x1CA2E27F;
 
     // Each scan asks several times about the same file: the header is read again only when the file changed.

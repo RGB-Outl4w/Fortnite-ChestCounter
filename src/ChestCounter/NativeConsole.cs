@@ -4,8 +4,8 @@ using System.Runtime.Versioning;
 namespace ChestCounter;
 
 /// <summary>
-/// The exe is a Windows application, so that the "start with Fortnite" standby process has no window at all.
-/// The normal tool gives itself a console window here, before anything is written.
+/// The exe is a Windows application (a window, and no console at all for the "start with Fortnite" standby process).
+/// The command line options (--once, --help) write into the terminal that started them.
 /// </summary>
 [SupportedOSPlatform("windows")]
 public static class NativeConsole
@@ -28,15 +28,14 @@ public static class NativeConsole
         AllocConsole();
     }
 
-    /// <summary>Minimized without taking the focus (started with Fortnite: the game keeps the screen).</summary>
-    public static void Minimize()
+    /// <summary>Lets the instance already open take the foreground (Windows only allows it to the active process).</summary>
+    public static void AllowOthersToTakeForeground()
     {
-        var hwnd = GetConsoleWindow();
-        if (hwnd != IntPtr.Zero)
-        {
-            ShowWindow(hwnd, SW_SHOWMINNOACTIVE);
-        }
+        try { AllowSetForegroundWindow(ASFW_ANY); } catch { }
     }
+
+    [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(uint processId);
+    private const uint ASFW_ANY = 0xFFFFFFFF;
 
     private static bool IsRedirected(int std)
     {
@@ -52,12 +51,10 @@ public static class NativeConsole
     private const int STD_OUTPUT_HANDLE = -11;
     private const int ATTACH_PARENT_PROCESS = -1;
     private const uint FILE_TYPE_DISK = 1, FILE_TYPE_PIPE = 3;
-    private const int SW_SHOWMINNOACTIVE = 7;
 
     [DllImport("kernel32.dll")] private static extern IntPtr GetConsoleWindow();
     [DllImport("kernel32.dll")] private static extern bool AllocConsole();
     [DllImport("kernel32.dll")] private static extern bool AttachConsole(int processId);
     [DllImport("kernel32.dll")] private static extern IntPtr GetStdHandle(int std);
     [DllImport("kernel32.dll")] private static extern uint GetFileType(IntPtr handle);
-    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr hwnd, int cmd);
 }

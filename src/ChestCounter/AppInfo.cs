@@ -8,6 +8,11 @@ public static class AppInfo
     public static string VersionText => $"{Version.Major}.{Version.Minor}.{Math.Max(0, Version.Build)}";
 
     public const string Repo = "RGB-Outl4w/Fortnite-ChestCounter";
+    /// <summary>
+    /// Treasure hunt data (content/content.json, assets/treasures) comes from the original project, which updates it
+    /// every week: this fork does not have to copy it.
+    /// </summary>
+    public const string ContentRepo = "LED-N/Fortnite-ChestCounter";
     public static string RepoUrl => "https://github.com/" + Repo;
     public static string IssuesUrl => RepoUrl + "/issues";
 
@@ -28,6 +33,9 @@ public static class AppInfo
         var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Path.GetFullPath(dataDir).TrimEnd('\\', '/').ToLowerInvariant()));
         return @"Local\ChestCounter.Instance." + Convert.ToHexString(hash, 0, 8);
     }
+    /// <summary>Set by a second launch: the instance already open comes to the front.</summary>
+    public static string ShowEventFor(string dataDir) => InstanceMutexFor(dataDir).Replace(".Instance.", ".Show.");
+
     public const string StandbyMutex = @"Local\ChestCounter.Standby";
     public const string StandbyStopEvent = @"Local\ChestCounter.StandbyStop";
 }

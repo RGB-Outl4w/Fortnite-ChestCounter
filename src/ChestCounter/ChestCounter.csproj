@@ -2,9 +2,16 @@
   <PropertyGroup>
     <!-- Windows app: the standby process has no window; the tool opens its own console (NativeConsole). -->
     <OutputType>WinExe</OutputType>
+    <!-- Windows Forms + WebView2: the window of the graphical interface (GuiWindow). -->
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- Only ChestCounter.exe in the output: no documentation files of the packages next to it. -->
+    <CopyDocumentationFilesFromPackages>false</CopyDocumentationFilesFromPackages>
+    <PublishDocumentationFiles>false</PublishDocumentationFiles>
+    <PublishReferencesDocumentationFiles>false</PublishReferencesDocumentationFiles>
     <AssemblyName>ChestCounter</AssemblyName>
     <RootNamespace>ChestCounter</RootNamespace>
-    <Version>1.5.0</Version>
+    <Version>1.6.0</Version>
     <InvariantGlobalization>false</InvariantGlobalization>
     <!-- Single-file publish: the parser discovers its types by reflection, so no trimming. -->
     <PublishTrimmed>false</PublishTrimmed>
@@ -17,11 +24,14 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\lib\FortniteReplayReader\FortniteReplayReader.csproj" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
   </ItemGroup>
   <ItemGroup>
     <!-- Report headings font (SIL Open Font License, see Assets/PirataOne-OFL.txt), embedded in the page: no download. -->
     <EmbeddedResource Include="Assets\PirataOne-latin.woff2" LogicalName="PirataOne.woff2" />
     <!-- What's new of this version: shown once after an update, and used as the GitHub release text (build.yml). -->
     <EmbeddedResource Include="..\..\RELEASE_NOTES.md" LogicalName="ReleaseNotes.md" />
+    <!-- Treasure hunt data (weeks, prize ids, odds, Treasure Hours, notices): replaced at runtime by a newer copy from the repository. -->
+    <EmbeddedResource Include="..\..\content\content.json" LogicalName="content.json" />
   </ItemGroup>
 </Project>
