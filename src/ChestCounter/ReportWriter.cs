@@ -116,7 +116,11 @@ public static class ReportWriter
 
     private static string H(string? s) => WebUtility.HtmlEncode(s ?? "");
 
-    private static DateTime When(MatchRecord m) => (m.MatchStartUtc ?? m.AnalyzedAtUtc).ToLocalTime();
+    /// <summary>Start of a match as shown (local time or UTC, from the settings).</summary>
+    private static DateTime When(MatchRecord m) => L.Shown(m.MatchStartUtc ?? m.AnalyzedAtUtc);
+
+    /// <summary>A short date and time ("Nov 8, 6:00 AM"), shown in local time or UTC.</summary>
+    private static string ShortWhen(DateTime utc) => L.Shown(utc).ToString(L.T("MMM d, ", "d MMM ") + L.TimePattern(), Cu) + L.Zone;
 
     // "Logbook" look (direction A): parchment cards on a night-sea background (a day version follows Windows' light
     // mode). Titles use the embedded Pirata One font; figures use Bahnschrift, installed with Windows.
@@ -160,6 +164,92 @@ public static class ReportWriter
         td.nw{white-space:nowrap}
         .big{font-size:20px}
         .items{color:var(--cmuted);font-size:13px}
+        /* Your chances */
+        .ch-intro{margin:0 0 12px;color:var(--muted);font-size:14px;max-width:760px}
+        .chances2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+        @media (max-width:820px){.chances2{grid-template-columns:1fr}}
+        .hcard{background:var(--card);color:var(--cink);border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:flex;flex-direction:column;gap:6px}
+        .hcard.got{border-color:var(--team);box-shadow:inset 6px 0 0 var(--team);padding-left:22px}
+        .hcard.boosted{border-color:#e2702f;box-shadow:inset 6px 0 0 #e2702f;padding-left:22px}
+        .htop{display:flex;align-items:center;gap:10px}
+        .cthumb{width:44px;height:44px;border-radius:6px;object-fit:cover;background:var(--track);flex:none}
+        .hname{flex:1;min-width:0}
+        .hname .k{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--cmuted)}
+        .ciname{font-weight:700;font-size:15px}
+        .hval{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .hval .big{font-size:40px;font-weight:700;line-height:1.05}
+        .hexp{font-size:14px}
+        .hcard .s{font-size:13px;color:var(--cmuted)}
+        .cfoot{font-size:13px;color:var(--cmuted);border-top:1px dashed var(--line);padding-top:6px;margin-top:2px}
+        .halfway{margin-top:2px}.hrow{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--cmuted)}
+        .tag{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11px "Segoe UI",system-ui,sans-serif;letter-spacing:.08em;text-transform:uppercase;flex:none}
+        .tag.weekly{background:#2c5d8a;color:#fff}
+        .tag.season{background:#6c3fb5;color:#fff}
+        .chances2 .gotbadge,.ctable .gotbadge{display:none;padding:2px 8px;border-radius:999px;background:var(--team);color:#fff;font:700 11px "Segoe UI",system-ui,sans-serif;margin-left:8px;white-space:nowrap}
+        .got .gotbadge{display:inline-block!important}
+        .vchip{display:inline-block;padding:2px 9px;border-radius:999px;font:600 12px "Segoe UI",system-ui,sans-serif;white-space:nowrap}
+        .vchip.vunlikely{background:#e4d3ad;color:#6b5a44}
+        .vchip.unlikely{background:#f0d9a8;color:#7a5410}
+        .vchip.possible{background:#f6cf86;color:#6d4300}
+        .vchip.likely{background:#cfe3c0;color:#2f5a1c}
+        .vchip.vlikely{background:#b7dcae;color:#1f4d14}
+        .vchip.certain{background:#2f7d4f;color:#fff}
+        .cbar{display:block;height:6px;background:var(--track);border-radius:3px;overflow:hidden;margin-top:5px}
+        .cbar.wide{width:100%}
+        .cbar i{display:block;height:6px;border-radius:3px}
+        .cbar i.vunlikely,.cbar i.unlikely{background:#c9a24f}.cbar i.possible{background:#d68a1c}
+        .cbar i.likely,.cbar i.vlikely{background:#5f9c4a}.cbar i.certain{background:#2f7d4f}.cbar i.gold{background:#b9821c}
+        .cgroup{margin-top:18px}
+        .ghead{display:flex;align-items:center;gap:10px;margin:0 0 8px}
+        .ghead .gt{font-weight:700;font-size:16px;color:var(--ink2)}
+        .ghead .gs{font-size:13px;color:var(--muted)}
+        .cdbox{margin-left:auto;text-align:right;flex:none}
+        .cdbox .cdl{display:block;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+        .cdbox .cd{font:700 18px "Segoe UI",system-ui,sans-serif;color:var(--ink2)}
+        .cd{font-variant-numeric:tabular-nums}.cd.soon{color:#f0a04b}
+        .ctable:not(.mini){table-layout:fixed;width:100%}
+        .ctable:not(.mini) th:nth-child(1){width:38%}
+        .ctable:not(.mini) th:nth-child(2){width:16%}
+        .ctable:not(.mini) th:nth-child(3){width:32%}
+        .ctable:not(.mini) th:nth-child(4){width:14%}
+        .ctable th.r,.ctable td.n{text-align:right}
+        .ctable td.n{white-space:nowrap;font-weight:700}
+        .ctable td{vertical-align:middle}
+        .tflex{display:flex;align-items:center;gap:10px}
+        .thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;background:var(--track);flex:none}
+        .tk{font-weight:600}
+        .iname{display:block;font-size:12px;color:var(--cmuted)}
+        .tchance{min-width:0}
+        .tcv{display:flex;align-items:center;justify-content:space-between;gap:8px}
+        tr.got .tk{color:var(--team)}
+        tr.boosted td:first-child{box-shadow:inset 4px 0 0 #e2702f;padding-left:14px}
+        .cmore{margin-top:14px;color:var(--ink)}
+        .cmore summary{cursor:pointer;font-weight:600;color:var(--ink2)}
+        .cmore p,.cmore ul{color:var(--muted);font-size:14px;max-width:760px}
+        .cmore li{margin:4px 0}
+        .cmore a{color:var(--title)}
+        .ctable.mini td,.ctable.mini th{padding-top:6px;padding-bottom:6px}
+        time[title]{border-bottom:1px dotted currentColor;cursor:help}
+        .mo{display:none}
+        @media (max-width:600px){
+          .ctable th:nth-child(2),.ctable td.pc{display:none}
+          .ctable:not(.mini) th:nth-child(1){width:42%}
+          .ctable:not(.mini) th:nth-child(3){width:38%}
+          .ctable:not(.mini) th:nth-child(4){width:20%}
+          .iname.mo{display:block}
+          .thumb{display:none}
+          .ctable th{white-space:normal;letter-spacing:.04em}
+          .tcard{padding:4px 10px}
+          /* Word and percentage do not fit side by side: the percentage goes under the word */
+          .tcv{flex-wrap:wrap;justify-content:flex-start;gap:2px 8px}
+          .ctable td.n{white-space:normal}
+          .tk{display:flex;flex-wrap:wrap;align-items:center;gap:4px}.tk .gotbadge{margin-left:0}
+          .hval .big{font-size:34px}
+          .ghead{align-items:flex-start;flex-wrap:wrap}
+          .cdbox{margin-left:0;text-align:left;width:100%;padding-left:2px}
+        }
+        /* A treasure the counter ticked by itself (seen in the replays): checked, not greyed, cannot be unticked */
+        .prize input[data-auto]{cursor:default}
         .star{color:var(--star);font-weight:600}
         .gold{color:#b9821c}
         .sw{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:10px;vertical-align:-1px}
@@ -327,8 +417,8 @@ public static class ReportWriter
         var sb = new StringBuilder();
         var title = L.T("Chest Counter", "Счётчик сундуков");
         var updated = L.T(
-            $"Updated {DateTime.Now.ToString("d MMM yyyy 'at' HH:mm:ss", Cu)} · auto refresh",
-            $"Обновлено {DateTime.Now.ToString("d MMM yyyy 'в' HH:mm:ss", Cu)} · обновляется автоматически");
+            $"Updated {L.Shown(DateTime.UtcNow).ToString("d MMM yyyy", Cu)} at {L.Clock(L.Shown(DateTime.UtcNow), seconds: true)} · auto refresh",
+            $"Обновлено {L.Shown(DateTime.UtcNow).ToString("d MMM yyyy", Cu)} в {L.Clock(L.Shown(DateTime.UtcNow), seconds: true)} · обновляется автоматически");
         string Tile(string value, string label, string? sub = null) =>
             $"""<div class="tile"><div class="v num">{value}</div><div class="l">{label}</div>{(sub != null ? $"<div class=\"s\">{sub}</div>" : "")}</div>""";
 
@@ -354,7 +444,7 @@ public static class ReportWriter
             """);
 
         // Last 30 days, one bar per day (the best day stands out).
-        var today = DateTime.Now.Date;
+        var today = L.Shown(DateTime.UtcNow).Date;
         var days = Enumerable.Range(0, 30).Select(i => today.AddDays(i - 29)).ToList();
         var perDay = days.Select(d => matches.Where(m => When(m).Date == d).Sum(m => m.ChestsOpened)).ToList();
         var max = Math.Max(1, perDay.Max());
@@ -434,7 +524,7 @@ public static class ReportWriter
         }
         sb.Append("</section></div>");
 
-        sb.Append(ChancesSection(grandTotal, matches));
+        sb.Append(ChancesSection(grandTotal, matches, data.ManualEntries));
         sb.Append(SeenSection(matches));
         sb.Append(CollectionSection(matches, data.ObtainedIds));
 
@@ -552,7 +642,7 @@ public static class ReportWriter
               });
             }
             [].forEach.call(boxes,function(c){
-              if(!c.disabled&&!c.hasAttribute('data-saved'))c.checked=!!ok[c.getAttribute('data-prize')];
+              if(c.hasAttribute('data-auto'))return;if(!c.hasAttribute('data-saved'))c.checked=!!ok[c.getAttribute('data-prize')];
               c.addEventListener('change',function(){var id=c.getAttribute('data-prize');if(c.checked)ok[id]=1;else delete ok[id];put('chestcounter-obtained',JSON.stringify(ok));send(id,c.checked);refresh()});
             });
             refresh();
@@ -589,6 +679,12 @@ public static class ReportWriter
     private static string Percent(double p)
     {
         var v = p * 100;
+        if (v >= 99.95)
+        {
+            // Would round to 100: at least once over many chests is never certain.
+            var most = 99.9.ToString("F1", Cu);
+            return L.Code == "en" ? $">{most}%" : $"> {most} %";
+        }
         var decimals = v >= 10 ? 1 : v <= 0 ? 0 : Math.Clamp((int)Math.Ceiling(-Math.Log10(v)) + 1, 1, 8);
         var text = v.ToString("F" + decimals, Cu);
         return L.Code == "en" ? text + "%" : text + " %";
@@ -598,10 +694,13 @@ public static class ReportWriter
         $"""<span class="info" tabindex="0" role="note" aria-label="{H(text)}">i<span class="infotip">{H(text)}</span></span>""";
 
     /// <summary>
-    /// "Your chances": for each kind of treasure, the chance of having obtained it at least once with the chests opened
-    /// so far (1 − (1 − p)^n).
+    /// "Your chances": for each kind of treasure, the chance it already dropped at least once (1 − (1 − p)^n), with a
+    /// word for it ("Very likely"). The kinds that change every week (gold outfit, vehicle and decal, pickaxe or back
+    /// bling, jam track, loading screen) count the chests of the week shown only: a chest only gives that week's item.
+    /// Pirate Shop Access and gizmos count every chest of the hunt. The weekly ones over the whole season and the way
+    /// it is computed are in two folded parts at the bottom.
     /// </summary>
-    private static string ChancesSection(int chests, IReadOnlyList<MatchRecord> matches)
+    private static string ChancesSection(int chests, IReadOnlyList<MatchRecord> matches, IReadOnlyList<ManualEntry> manualEntries)
     {
         var now = DateTime.UtcNow;
         if (now >= TreasureCatalog.Weeks[^1].To.AddDays(14))
@@ -610,47 +709,290 @@ public static class ReportWriter
         }
 
         var sb = new StringBuilder();
-        var outfits = string.Join(" ", TreasureCatalog.Weeks.SelectMany(w => w.Prizes).Where(p => p.Kind == TreasureCatalog.GoldOutfit).Select(p => p.Id));
+        static DateTime Start(MatchRecord m) => DateTime.SpecifyKind(m.MatchStartUtc ?? m.AnalyzedAtUtc, DateTimeKind.Utc).ToUniversalTime();
         // When each counted chest was opened (UTC): a chest of a Treasure Hour counts with the boosted odds.
-        var chestTimes = matches.SelectMany(m => m.Chests.Select(c => DateTime.SpecifyKind(m.MatchStartUtc ?? m.AnalyzedAtUtc, DateTimeKind.Utc).ToUniversalTime().AddSeconds(c.TimeSeconds))).ToList();
-        var plain = Math.Max(0, chests - chestTimes.Count); // added by hand: time unknown, normal odds
-        var boosted = chestTimes.Count(t => TreasureCatalog.Boost(TreasureCatalog.GoldOutfit, t) > 1);
-        double Chance(TreasureOdds odds) => chests < chestTimes.Count
-            ? TreasureCatalog.AtLeastOnce(odds.OneIn, chests)
-            : TreasureCatalog.AtLeastOnce(odds, chestTimes, plain);
-        var chancesInfo = L.T(
-            $"Every chest always has the same odds (for example 1 in 1,562,500 for the gold outfit): they do not grow from one chest to the next. What grows is the chance of having obtained the item at least once over all your {chests.ToString("N0", Cu)} chests (those added by hand included): 1 − (1 − 1/X)^N. Chests opened during a Treasure Hour (Saturday 19:00-21:00 and Sunday 02:00-04:00 UTC) count with their boosted odds ({boosted.ToString("N0", Cu)} of yours). Chests opened before the treasure hunt did not give these treasures. Odds published by Epic Games, times from fortnite.bot.",
-            $"У каждого сундука всегда одни и те же шансы (например, 1 из 1 562 500 для золотого наряда): от сундука к сундуку они не растут. Растёт вероятность получить предмет хотя бы раз за все твои {chests.ToString("N0", Cu)} сундуков (включая добавленные вручную): 1 − (1 − 1/X)^N. Сундуки, открытые во время Часа сокровищ (суббота 19:00–21:00 и воскресенье 02:00–04:00 UTC), считаются с повышенными шансами (таких у тебя: {boosted.ToString("N0", Cu)}). Сундуки, открытые до начала охоты за сокровищами, этих сокровищ не давали. Шансы опубликованы Epic Games, время — с fortnite.bot.");
-        sb.Append(FoldStart("chances", L.T("Your chances", "Твои шансы"), open: true, Info(chancesInfo)));
-        sb.Append($"{TreasureHourBanner()}<div class=\"chances\">");
+        var chestTimes = matches.SelectMany(m => m.Chests.Select(c => Start(m).AddSeconds(c.TimeSeconds))).ToList();
+        // Chests opened before the treasure hunt could not give a treasure.
+        var huntStart = TreasureCatalog.HuntStart;
+        var huntEnd = TreasureCatalog.Weeks[^1].To;
+        var huntTimes = chestTimes.Where(t => t >= huntStart).OrderBy(t => t).ToList();
+        // Added by hand (the pencil): no date, so normal odds, and in a week only when the player ticked "Opened this
+        // week" (they are in the season too). A negative adjustment removes chests from the season (its boosts are then
+        // unknown).
+        var manual = chests - chestTimes.Count;
+        var seasonChests = Math.Max(0, huntTimes.Count + manual);
+        var week = TreasureCatalog.ShownWeek(now);
+        var weekTimes = week == null ? new List<DateTime>() : huntTimes.Where(t => t >= week.From && t < week.To).ToList();
+        var weekManual = week == null ? 0 : Math.Max(0, manualEntries.Where(e => e.WeekFromUtc == week.From).Sum(e => e.Chests));
+        var weekChests = weekTimes.Count + weekManual;
+        var boosted = huntTimes.Count(t => TreasureCatalog.Boost(TreasureCatalog.GoldOutfit, t) > 1);
 
-        string Big(TreasureOdds odds, string items)
+        Chance Season(TreasureOdds odds) => manual >= 0
+            ? Chance.Of(odds, huntTimes, manual)
+            : Chance.Of(odds, Array.Empty<DateTime>(), seasonChests);
+        Chance Week(TreasureOdds odds) => Chance.Of(odds, weekTimes, weekManual);
+        Chance Shown(TreasureOdds odds) => odds.Weekly ? Week(odds) : Season(odds);
+        TreasureOdds Odds(string kind) => TreasureCatalog.Odds.First(o => o.Kind == kind);
+        TreasurePrize? PrizeOf(string kind) => week?.Prizes.FirstOrDefault(p => p.Kind == kind);
+
+        // Pace: chests per day this week (from its second day), else over the hunt. Used to project the chance at the
+        // end of the week (or of the hunt) if the player keeps going like this, with the normal odds.
+        static double PerDay(int count, DateTime from, DateTime to) => (to - from).TotalDays is var d && d >= 1 ? count / d : 0;
+        var seasonPace = huntTimes.Count > 0 ? PerDay(huntTimes.Count, huntTimes[0], now) : 0;
+        var weekPace = week != null ? PerDay(weekChests, week.From, now) : 0;
+        if (weekPace <= 0)
         {
-            var p = Chance(odds);
-            var half = TreasureCatalog.ChestsFor(odds.OneIn, 0.5);
-            var left = Math.Max(0, half - chests);
-            var width = Math.Clamp(p * 100, 0.6, 100).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+            weekPace = seasonPace;
+        }
+        string Projection(TreasureOdds odds, Chance c, bool weekly)
+        {
+            var end = weekly ? week?.To ?? now : huntEnd;
+            var pace = weekly ? weekPace : seasonPace;
+            // Only while it is still in doubt: a projection of ">99.9%" says nothing.
+            if (pace <= 0 || now >= end || c.P >= 0.75)
+            {
+                return "";
+            }
+            var log = c.LogNever + pace * (end - now).TotalDays * double.LogP1(-1.0 / odds.OneIn);
+            var p = PercentHtml(new Chance(-double.ExpM1(log), log, 0, 0));
+            return weekly
+                ? L.T($"≈ {p} by the end of the week at your pace", $"≈ {p} к концу недели в твоём темпе")
+                : L.T($"≈ {p} by the end of the hunt at your pace", $"≈ {p} к концу охоты в твоём темпе");
+        }
+
+        // Gizmos: treasures that did not come from a golden chest (the others are counted by the collection).
+        var gizmoTimes = matches.SelectMany(m => m.TreasureFinds.Where(f => !f.FromGoldenChest).Select(f => Start(m).AddSeconds(f.ObtainedAtSeconds ?? 0)))
+            .Where(t => t >= huntStart).OrderBy(t => t).ToList();
+
+        string Tag(bool weekly) => weekly
+            ? $"<span class=\"tag weekly\">{L.T("Weekly", "Еженедельные")}</span>"
+            : $"<span class=\"tag season\">{L.T("Season", "Сезонные")}</span>";
+        string Chip(double p)
+        {
+            var (cls, text) = Verdict(p);
+            return $"<span class=\"vchip {cls}\">{text}</span>";
+        }
+        string Bar(double p) => $"<span class=\"cbar\"><i class=\"{Verdict(p).Cls}\" style=\"width:{Math.Clamp(p * 100, 0.8, 100).ToString("F1", CultureInfo.InvariantCulture)}%\"></i></span>";
+        string Img(TreasurePrize? prize, string cls) => TreasureImages.Src(prize?.Image) is { } src ? $"<img class=\"{cls}\" src=\"{H(src)}\" alt=\"\" onerror=\"this.style.visibility='hidden'\">" : "";
+        string OneIn(int n) => L.T($"1 in {n.ToString("N0", Cu)}", $"1 из {n.ToString("N0", Cu)}");
+        string N(int n) => n.ToString("N0", Cu);
+        string GotBadge() => $"<span class=\"gotbadge\">✓ {L.T("Got it", "Получено")}</span>";
+
+        var info = L.T(
+            "The chance each treasure has already dropped for you at least once. Details: \"How is this calculated?\" at the bottom.",
+            "Вероятность того, что каждое сокровище уже выпадало тебе хотя бы раз. Подробности — «Как это считается?» внизу.");
+        sb.Append(FoldStart("chances", L.T("Your chances", "Твои шансы"), open: true, Info(info)));
+        sb.Append(TreasureHourBanner());
+        sb.Append($"<p class=\"ch-intro\">{L.T(
+            "Every chest is a fresh roll: your odds don't build up. These numbers show the chance a treasure has <b>already dropped for you at least once</b>, from the chests you've opened.",
+            "Каждый сундук — новый бросок: шансы не накапливаются. Эти числа показывают вероятность того, что сокровище <b>уже выпадало тебе хотя бы раз</b> из открытых тобой сундуков.")}</p>");
+
+        // ---- The two rarest: the gold outfit of the week and Pirate Shop Access (all season).
+        string Card(string kind)
+        {
+            var odds = Odds(kind);
+            var weekly = odds.Weekly;
+            var c = Shown(odds);
+            var prize = weekly ? PrizeOf(kind) : TreasureCatalog.PirateShopAccess;
+            var items = prize?.Id ?? "";
+            var name = weekly ? prize?.Name ?? TreasureCatalog.KindName(kind) : L.T("Lasts all season", "Действует весь сезон");
+            var about = c.P > 0 && c.P < 0.5 ? " · " + L.T($"about 1 in {N((int)Math.Round(1 / c.P))}", $"примерно 1 из {N((int)Math.Round(1 / c.P))}") : "";
+            var scope = weekly
+                ? L.T("chance it dropped for you this week", "вероятность, что выпало на этой неделе")
+                : L.T("chance it dropped for you this season", "вероятность, что выпало в этом сезоне");
+            var line = L.T($"Each chest: {OneIn(odds.OneIn)} · {N(c.Chests)} chests {(weekly ? "this week" : "this season")}",
+                $"Каждый сундук: {OneIn(odds.OneIn)} · сундуков {(weekly ? "на этой неделе" : "в этом сезоне")}: {N(c.Chests)}");
+            var extra = new StringBuilder();
+            if (weekly)
+            {
+                var s = Season(odds);
+                extra.Append($"<div class=\"cfoot\">{L.T($"All weeks combined: <b>{PercentHtml(s)}</b> over {N(s.Chests)} chests", $"Все недели вместе: <b>{PercentHtml(s)}</b>, сундуков: {N(s.Chests)}")}</div>");
+                if (week != null && now < week.To)
+                {
+                    extra.Append($"<div class=\"cfoot\">{L.T("This outfit leaves in", "Этот наряд уйдёт через")} <b>{Countdown(week.To)}</b></div>");
+                }
+            }
+            else
+            {
+                var half = TreasureCatalog.ChestsFor(odds.OneIn, 0.5);
+                var progress = Math.Clamp(c.Chests * 100.0 / half, 0.8, 100).ToString("F1", CultureInfo.InvariantCulture);
+                extra.Append($"<div class=\"halfway\"><div class=\"hrow\"><span>{L.T("Halfway to a 50/50 chance", "До шанса 50 на 50")}</span><span><b>{N(c.Chests)}</b> / {N((int)Math.Min(int.MaxValue, half))} {L.T("chests", "сундуков")}</span></div><span class=\"cbar wide\"><i class=\"gold\" style=\"width:{progress}%\"></i></span></div>");
+            }
+            var projection = Projection(odds, c, weekly);
+            if (projection.Length > 0)
+            {
+                extra.Append($"<div class=\"cfoot\">{projection}</div>");
+            }
             return $"""
-                <div class="odds" data-items="{items}" data-kind="{odds.Kind}" data-p="{p.ToString("R", System.Globalization.CultureInfo.InvariantCulture)}"><div class="k"><span>{H(TreasureCatalog.KindName(odds.Kind))}<span class="boost" hidden></span></span><span class="gotbadge">✓ {L.T("obtained", "получено")}</span></div>
-                <div class="v num">{Percent(p)}</div>
-                <div class="l">{L.T($"chance of having had it at least once with your {chests.ToString("N0", Cu)} chests", $"вероятность получить хотя бы раз за твои {chests.ToString("N0", Cu)} сундуков")}</div>
-                <span class="meter wide"><i style="width:{width}%"></i></span>
-                <div class="s sline">{L.T($"1 in {odds.OneIn.ToString("N0", Cu)} per chest · one chance in two at about {half.ToString("N0", Cu)} chests", $"1 из {odds.OneIn.ToString("N0", Cu)} на сундук · один шанс из двух примерно за {half.ToString("N0", Cu)} сундуков")}{(left > 0 ? L.T($" ({left.ToString("N0", Cu)} to go)", $" (осталось {left.ToString("N0", Cu)})") : "")}</div></div>
+                <div class="hcard" data-items="{items}" data-kind="{kind}" data-p="{c.P.ToString("R", CultureInfo.InvariantCulture)}">
+                <div class="htop">{Img(prize, "cthumb")}<div class="hname"><div class="k">{H(TreasureCatalog.KindName(kind))}<span class="boost" hidden></span></div><div class="ciname">{H(name)}</div></div>{Tag(weekly)}{GotBadge()}</div>
+                <div class="hval"><span class="big num">{PercentHtml(c)}</span>{Chip(c.P)}</div>
+                <div class="hexp">{scope}{about}</div>
+                <div class="s sline">{line}</div>{extra}</div>
                 """;
         }
-        sb.Append(Big(TreasureCatalog.Odds.First(o => o.Kind == TreasureCatalog.GoldOutfit), outfits));
-        sb.Append(Big(TreasureCatalog.Odds.First(o => o.Kind == TreasureCatalog.PirateShop), TreasureCatalog.PirateShop));
+        sb.Append("<div class=\"chances2\">");
+        sb.Append(Card(TreasureCatalog.GoldOutfit));
+        sb.Append(Card(TreasureCatalog.PirateShop));
         sb.Append("</div>");
 
-        // The other kinds: chance of at least one, and how many of them on average with that many chests.
-        sb.Append($"<div class=\"card\" style=\"margin-top:12px\"><table><tr><th>{L.T("Treasure", "Сокровище")}</th><th style=\"text-align:right\">{L.T("Per chest", "На сундук")}</th><th style=\"text-align:right\">{L.T("At least one", "Хотя бы раз")}</th><th style=\"text-align:right\">{L.T("On average", "В среднем")}</th></tr>");
-        foreach (var odds in TreasureCatalog.Odds.Where(o => o.Kind is not (TreasureCatalog.GoldOutfit or TreasureCatalog.PirateShop)))
+        // ---- Tables: the weekly treasures (this week's items), then the season ones. Same columns, same widths.
+        var head = $"<tr><th>{L.T("Treasure", "Сокровище")}</th><th class=\"r\">{L.T("Each chest", "Каждый сундук")}</th><th>{L.T("Chance you've had it", "Шанс, что уже выпало")}</th><th class=\"r\">{L.T("Expected", "Ожидается")}</th></tr>";
+        string Row(TreasureOdds odds, string note)
         {
-            var average = (double)chests / odds.OneIn;
-            sb.Append($"<tr data-kind=\"{odds.Kind}\"><td>{H(TreasureCatalog.KindName(odds.Kind))}<span class=\"boost\" hidden></span>{(odds.Weekly ? $" <span class=\"items\">· {L.T("changes every week", "меняется каждую неделю")}</span>" : "")}</td><td class=\"n num pc\">1 / {odds.OneIn.ToString("N0", Cu)}</td><td class=\"n num\">{Percent(Chance(odds))}</td><td class=\"n num\">{average.ToString(average >= 10 ? "N0" : "N1", Cu)}</td></tr>");
+            var c = Shown(odds);
+            var prize = odds.Weekly ? PrizeOf(odds.Kind) : null;
+            var name = prize != null ? $"<span class=\"iname\">{H(prize.Name)}</span>" : "";
+            var projection = odds.Weekly ? Projection(odds, c, weekly: true) : "";
+            var below = string.Join("", new[] { note, projection }.Where(x => x.Length > 0).Select(x => $"<span class=\"iname\">{x}</span>"));
+            return $"<tr data-kind=\"{odds.Kind}\"{(prize != null ? $" data-items=\"{prize.Id}\"" : "")}><td><div class=\"tflex\">{Img(prize, "thumb")}<div><div class=\"tk\">{H(TreasureCatalog.KindName(odds.Kind))}<span class=\"boost\" hidden></span>{GotBadge()}</div>{name}<span class=\"iname mo\">{OneIn(odds.OneIn)} {L.T("each chest", "за сундук")}</span>{below}</div></div></td>"
+                + $"<td class=\"n pc\">{OneIn(odds.OneIn)}</td><td class=\"tchance\"><div class=\"tcv\">{Chip(c.P)}<b>{PercentHtml(c)}</b></div>{Bar(c.P)}</td><td class=\"n\">{Expected(c.Average)}</td></tr>";
         }
-        sb.Append($"</table></div>{FoldEnd}");
+
+        if (week != null)
+        {
+            var leaves = now < week.To
+                ? $" · {L.T("leaves", "уходит")} {TimeEl(week.To, "dayTime")}</div></div><div class=\"cdbox\"><span class=\"cdl\">{L.T("Leaves in", "Уйдёт через")}</span>{Countdown(week.To)}</div></div>"
+                : "</div></div></div>";
+            sb.Append($"<div class=\"cgroup\"><div class=\"ghead\">{Tag(true)}<div><div class=\"gt\">{L.T("Week", "Неделя")} {week.Number} · {H(week.Title)}</div><div class=\"gs\"><b>{L.Count(weekChests, "chest", "chests", "сундук", "сундука", "сундуков")}</b> {L.T("this week", "эта неделя")}{(weekManual > 0 ? L.T($", including {N(weekManual)} added by hand", $", из них добавлено вручную: {N(weekManual)}") : "")}{leaves}");
+            sb.Append($"<div class=\"card tcard\"><table class=\"ctable\">{head}");
+            foreach (var odds in TreasureCatalog.Odds.Where(o => o.Weekly && o.Kind != TreasureCatalog.GoldOutfit))
+            {
+                sb.Append(Row(odds, ""));
+            }
+            sb.Append("</table></div></div>");
+        }
+
+        var byHand = manual > 0 ? L.T($", including {N(manual)} added by hand", $", из них добавлено вручную: {N(manual)}") : "";
+        sb.Append($"<div class=\"cgroup\"><div class=\"ghead\">{Tag(false)}<div><div class=\"gt\">{L.T("All season", "Весь сезон")}</div><div class=\"gs\"><b>{L.Count(seasonChests, "chest", "chests", "сундук", "сундука", "сундуков")}</b> {L.T("since the hunt started", "с начала охоты")} ({TimeEl(huntStart, "date")}){byHand}</div></div></div>");
+        sb.Append($"<div class=\"card tcard\"><table class=\"ctable\">{head}");
+        foreach (var odds in TreasureCatalog.Odds.Where(o => !o.Weekly && o.Kind != TreasureCatalog.PirateShop))
+        {
+            var note = "";
+            if (odds.Kind == TreasureCatalog.Gizmo && gizmoTimes.Count > 0)
+            {
+                var since = huntTimes.Count(t => t > gizmoTimes[^1]);
+                note = L.T($"You found {N(gizmoTimes.Count)} · last one {L.Count(since, "chest", "chests", "сундук", "сундука", "сундуков")} ago",
+                    $"Найдено: {N(gizmoTimes.Count)} · последнее {L.Count(since, "chest", "chests", "сундук", "сундука", "сундуков")} назад");
+            }
+            sb.Append(Row(odds, note));
+        }
+        sb.Append("</table></div></div>");
+
+        // ---- Folded: the weekly treasures over the whole season, and how it is computed.
+        sb.Append($"<details class=\"cmore\"><summary>{L.T("Weekly treasures, all weeks combined", "Еженедельные сокровища, все недели вместе")}</summary>");
+        sb.Append($"<p>{L.T($"The chance you've had at least one of them from <i>any</i> week, over all {N(seasonChests)} chests of the hunt.", $"Вероятность получить хотя бы одно из них за <i>любую</i> неделю, по всем сундукам охоты ({N(seasonChests)}).")}</p>");
+        sb.Append($"<div class=\"card tcard\"><table class=\"ctable mini\"><tr><th>{L.T("Treasure", "Сокровище")}</th><th class=\"r\">{L.T("Chance", "Шанс")}</th><th class=\"r\">{L.T("Expected", "Ожидается")}</th></tr>");
+        foreach (var odds in TreasureCatalog.Odds.Where(o => o.Weekly))
+        {
+            var s = Season(odds);
+            sb.Append($"<tr><td>{H(TreasureCatalog.KindName(odds.Kind))}</td><td class=\"n\">{PercentHtml(s)}</td><td class=\"n\">{Expected(s.Average)}</td></tr>");
+        }
+        sb.Append("</table></div></details>");
+
+        var hours = NextRegularHours(now);
+        var hoursText = hours.Count > 0
+            ? L.T($" They run every {string.Join(" and ", hours.Select(h => TimeEl(h, "weekdayTime")))}, for 2 hours.", $" Они проходят: {string.Join(" и ", hours.Select(h => TimeEl(h, "weekdayTime")))}, по 2 часа.")
+            : "";
+        string Link(string url, string text) => $"<a href=\"{H(url)}\" target=\"_blank\" rel=\"noopener\">{H(text)}</a>";
+        sb.Append($"<details class=\"cmore\"><summary>{L.T("How is this calculated?", "Как это считается?")}</summary><ul>");
+        sb.Append(L.T(
+            $"<li><b>Each chest is independent.</b> A loading screen is {OneIn(Odds(TreasureCatalog.LoadingScreen).OneIn)} on every chest, no matter how many you've opened.</li><li><b>Chance you've had it</b> = 1 − (1 − 1/X)<sup>chests</sup>. It gets close to 100% but never reaches it.</li><li><b>Weekly</b> treasures change every Sunday, and a chest only gives that week's one, so only this week's chests count.</li><li><b>Season</b> treasures (Pirate Shop Access, gizmos) count every chest since the hunt started, including the ones you added by hand. Those have no date, so they count toward a week only if you ticked \"Opened this week\".</li><li><b>Treasure Hours</b> boost some odds (for example ×10 for vehicles).{hoursText} Chests opened during one count with the boosted odds ({N(boosted)} of yours).</li><li><b>Expected</b> is how many you'd get on average with these chests. <b>At your pace</b> is the same chance at the end of the week (or of the hunt) if you keep opening as many chests a day.</li><li>Odds published by {Link(TreasureCatalog.OddsSource, "Epic Games (Fortnite Status)")}, Treasure Hour times from {Link(TreasureCatalog.HoursSource, "fortnite.bot")}.</li>",
+            $"<li><b>Каждый сундук независим.</b> Загрузочный экран выпадает с шансом {OneIn(Odds(TreasureCatalog.LoadingScreen).OneIn)} из любого сундука, сколько бы ты их ни открыл.</li><li><b>Шанс, что уже выпало</b> = 1 − (1 − 1/X)<sup>сундуки</sup>. Он приближается к 100%, но никогда его не достигает.</li><li><b>Еженедельные</b> сокровища меняются каждое воскресенье, и сундук даёт только сокровище текущей недели, поэтому считаются только сундуки этой недели.</li><li><b>Сезонные</b> сокровища (доступ в пиратскую лавку, устройства) учитывают все сундуки с начала охоты, включая добавленные вручную. У добавленных нет даты, поэтому к неделе они относятся, только если ты отметил «Открыты на этой неделе».</li><li><b>Часы сокровищ</b> повышают некоторые шансы (например, ×10 для транспорта).{hoursText} Сундуки, открытые в это время, считаются с повышенными шансами (таких у тебя: {N(boosted)}).</li><li><b>Ожидается</b> — сколько ты получишь в среднем с этими сундуками. <b>В твоём темпе</b> — тот же шанс к концу недели (или охоты), если ты продолжишь открывать столько же сундуков в день.</li><li>Шансы опубликованы {Link(TreasureCatalog.OddsSource, "Epic Games (Fortnite Status)")}, время Часов сокровищ — с {Link(TreasureCatalog.HoursSource, "fortnite.bot")}.</li>"));
+        sb.Append($"</ul></details>{FoldEnd}");
         return sb.ToString();
+    }
+
+    /// <summary>A word for a chance, and its color class.</summary>
+    private static (string Cls, string Text) Verdict(double p) => (p * 100) switch
+    {
+        >= 99.95 => ("certain", L.T("Almost certain", "Почти наверняка")),
+        >= 95 => ("vlikely", L.T("Very likely", "Очень вероятно")),
+        >= 75 => ("likely", L.T("Likely", "Вероятно")),
+        >= 25 => ("possible", L.T("Maybe", "Возможно")),
+        >= 5 => ("unlikely", L.T("Unlikely", "Маловероятно")),
+        _ => ("vunlikely", L.T("Very unlikely", "Очень маловероятно")),
+    };
+
+    /// <summary>How many on average ("≈ 4.3", "&lt; 0.1").</summary>
+    private static string Expected(double average) => average < 0.05
+        ? "&lt; " + 0.1.ToString("N1", Cu)
+        : "≈ " + average.ToString(average >= 10 ? "N0" : "N1", Cu);
+
+    /// <summary>A live countdown to a moment (drawn by the Treasure Hour script, every second).</summary>
+    private static string Countdown(DateTime utc) => $"<span class=\"cd\" data-end=\"{utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)}\"></span>";
+
+    /// <summary>
+    /// A moment in local time or UTC (Settings), with both in the tooltip. Formats: "dayTime" (Sunday, Nov 15, 6:00
+    /// AM), "weekdayTime" (Saturday 11:00 AM), "date" (November 1).
+    /// </summary>
+    private static string TimeEl(DateTime utc, string format)
+    {
+        var shown = L.Shown(utc);
+        var text = format switch
+        {
+            "date" => shown.ToString(L.T("MMMM d", "d MMMM"), Cu),
+            "weekdayTime" => shown.ToString("dddd ", Cu) + L.Clock(shown),
+            _ => shown.ToString(L.T("dddd, MMM d, ", "dddd, d MMM, "), Cu) + L.Clock(shown),
+        };
+        var local = utc.ToLocalTime();
+        var tip = $"{local.ToString("D", Cu)}, {local.ToString(L.TimePattern(), Cu)} ({L.LocalOffset}) · {utc.ToString("D", Cu)}, {utc.ToString(L.TimePattern(), Cu)} UTC";
+        return $"<time datetime=\"{utc.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture)}\" title=\"{H(tip)}\">{H(text)}</time>";
+    }
+
+    /// <summary>The next regular Treasure Hours (Saturday 19:00 and Sunday 02:00 UTC), for the explanation.</summary>
+    private static List<DateTime> NextRegularHours(DateTime now)
+    {
+        DateTime Next(DayOfWeek day, int hour)
+        {
+            var t = new DateTime(now.Year, now.Month, now.Day, hour, 0, 0, DateTimeKind.Utc).AddDays(((int)day - (int)now.DayOfWeek + 7) % 7);
+            return t.AddHours(2) > now ? t : t.AddDays(7);
+        }
+        return new[] { Next(DayOfWeek.Saturday, 19), Next(DayOfWeek.Sunday, 2) }.OrderBy(t => t).ToList();
+    }
+
+    /// <summary>A chance of "at least once" and what it is based on.</summary>
+    /// <param name="P">Chance of at least once (rounds to exactly 1 for the common kinds).</param>
+    /// <param name="LogNever">Natural log of the chance of never: still exact when <paramref name="P"/> is 1.</param>
+    /// <param name="Average">How many of them on average.</param>
+    /// <param name="Chests">Chests counted.</param>
+    private readonly record struct Chance(double P, double LogNever, double Average, int Chests)
+    {
+        public static Chance Of(TreasureOdds odds, IReadOnlyCollection<DateTime> times, long plain)
+        {
+            var log = TreasureCatalog.LogNever(odds, times, plain);
+            return new Chance(-double.ExpM1(log), log, TreasureCatalog.Expected(odds, times, plain), (int)(times.Count + Math.Max(0, plain)));
+        }
+    }
+
+    /// <summary>
+    /// A chance as text, never "100%": at least once over many chests is never certain. Close to it, the exact gap is
+    /// in the tooltip ("never had it: 1 chance in 5.2 × 10²⁷").
+    /// </summary>
+    private static string PercentHtml(Chance c)
+    {
+        var text = Percent(c.P);
+        if (c.P * 100 < 99.95)
+        {
+            return text;
+        }
+        var x = OneInHuge(c.LogNever);
+        var never = L.T($"never had it: 1 chance in {x}", $"ни разу не выпало: 1 шанс из {x}");
+        return $"<span title=\"{H(never)}\">{text}</span>";
+    }
+
+    /// <summary>"1 in X" from the log of a tiny chance: X written plainly up to a billion, then as a power of ten.</summary>
+    private static string OneInHuge(double logChance)
+    {
+        var log10 = -logChance / Math.Log(10);
+        if (log10 < 9)
+        {
+            return Math.Round(Math.Exp(-logChance)).ToString("N0", Cu);
+        }
+        var exp = (int)Math.Floor(log10);
+        var mantissa = Math.Pow(10, log10 - exp);
+        const string sup = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+        return $"{mantissa.ToString("F1", Cu)} × 10{string.Concat(exp.ToString(CultureInfo.InvariantCulture).Select(d => sup[d - '0']))}";
     }
 
     /// <summary>The collection of this season's treasures, to tick what was obtained (folded by default).</summary>
@@ -672,7 +1014,7 @@ public static class ReportWriter
             var saved = !auto && ticked.Contains(p.Id);
             var src = TreasureImages.Src(p.Image);
             var img = src != null ? $"""<img src="{H(src)}" alt="" loading="lazy" onerror="this.remove()">""" : "";
-            return $"""<label class="prize{(auto ? " got" : "")}"><input type="checkbox" data-prize="{p.Id}"{(auto ? " checked disabled" : saved ? " checked data-saved=\"1\"" : "")}><span class="pimg">{img}</span><span class="pn">{H(p.Name)}</span><span class="pk">{H(TreasureCatalog.KindName(p.Kind))}{(auto ? " · " + L.T("seen in your replays", "замечено в твоих повторах") : "")}</span></label>""";
+            return $"""<label class="prize{(auto ? " got" : "")}"><input type="checkbox" data-prize="{p.Id}"{(auto ? $" checked data-auto=\"1\" onclick=\"return false\" title=\"{H(L.T("Ticked by itself: seen in your replays", "Отмечено само: замечено в твоих повторах"))}\"" : saved ? " checked data-saved=\"1\"" : "")}><span class="pimg">{img}</span><span class="pn">{H(p.Name)}</span><span class="pk">{H(TreasureCatalog.KindName(p.Kind))}{(auto ? " · " + L.T("seen in your replays", "замечено в твоих повторах") : "")}</span></label>""";
         }
         var collectionInfo = L.T(
             "Tick what you already obtained: it is saved in this browser only. A treasure from a golden chest is ticked by itself when the counter recognizes it. Apart from gizmos, the same treasure cannot be obtained twice. Images: fortnite.bot, downloaded once by the counter and kept in its data folder.",
@@ -683,7 +1025,7 @@ public static class ReportWriter
         foreach (var week in TreasureCatalog.Weeks)
         {
             var current = now >= week.From && now < week.To;
-            var dates = $"{week.From.ToLocalTime().ToString(L.T("MMM d HH:mm", "d MMM HH:mm"), Cu)} – {week.To.ToLocalTime().ToString(L.T("MMM d HH:mm", "d MMM HH:mm"), Cu)}";
+            var dates = $"{ShortWhen(week.From)} – {ShortWhen(week.To)}";
             sb.Append($"<div class=\"wk{(current ? " now" : "")}\"><div class=\"wt\">{L.T("Week", "Неделя")} {week.Number} · {H(week.Title)} <span class=\"items\">{dates}{(current ? " · " + L.T("this week", "эта неделя") : "")}</span></div>");
             sb.Append(week.Prizes.Count > 0
                 ? $"<div class=\"prizes\">{string.Concat(week.Prizes.Select(Prize))}</div></div>"
@@ -695,7 +1037,9 @@ public static class ReportWriter
 
     /// <summary>
     /// The Treasure Hour banner: drawn by the page script from the schedule, against the clock of the PC, so that it
-    /// switches by itself when an hour starts or ends ("live now, until 22:00" / "next one: Saturday 20:00").
+    /// switches by itself when an hour starts or ends ("live now, until 22:00 · ends in 37m" / "next one: Saturday
+    /// 20:00 · in 2d 4h"). Times follow the settings (local time or UTC, 12 or 24 h).
+    /// The same script draws every countdown of the page (<see cref="Countdown"/>) each second.
     /// </summary>
     private static string TreasureHourBanner()
     {
@@ -717,28 +1061,37 @@ public static class ReportWriter
         {
             live = L.T("Treasure Hour live now, until {0}", "Час сокровищ идёт сейчас, до {0}"),
             next = L.T("Next Treasure Hour: {0}", "Следующий Час сокровищ: {0}"),
+            endsIn = L.T("ends in {0}", "закончится через {0}"),
+            startsIn = L.T("in {0}", "через {0}"),
             expected = L.T("expected, not announced yet", "ожидается, ещё не объявлен"),
             perChest = L.T("1 in {0} per chest", "1 из {0} на сундук"),
+            oneIn = L.T("1 in {0}", "1 из {0}"),
             boostPerChest = L.T("1 in {0} per chest during the Treasure Hour", "1 из {0} на сундук во время Часа сокровищ"),
             boostHalf = L.T(" · one chance in two within {0} more chests at this rate", " · один шанс из двух ещё за {0} сундуков в таком темпе"),
+            units = L.T("d h m s", "д ч мин с").Split(' '),
+            now = L.T("now", "сейчас"),
             locale = L.Culture.Name,
         };
+        // Time settings: UTC or local time, 12- or 24-hour clock (the same as the times written by the counter).
+        var clock = new { utc = L.UtcTimes, h12 = !L.Clock24 };
         // The default encoder escapes < > & as <...: the JSON cannot close the <script> element it sits in.
-        var json = System.Text.Json.JsonSerializer.Serialize(new { hours, odds, names, text });
+        var json = System.Text.Json.JsonSerializer.Serialize(new { hours, odds, names, text, clock });
         return $$"""
             <div class="thour" id="thour" hidden></div>
             <script type="application/json" id="thdata">{{json}}</script>
             <script>(function(){
             var d=JSON.parse(document.getElementById('thdata').textContent),el=document.getElementById('thour');
             function f(n){return Math.round(n).toLocaleString(d.text.locale)}
-            function t(ms,withDay){var o=withDay?{weekday:'long',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}:{hour:'2-digit',minute:'2-digit'};return new Date(ms).toLocaleString(d.text.locale,o)}
+            function t(ms,withDay){var o=withDay?{weekday:'long',day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}:{hour:'numeric',minute:'2-digit'};o.hour12=d.clock.h12;if(d.clock.utc)o.timeZone='UTC';return new Date(ms).toLocaleString(d.text.locale,o)+(d.clock.utc?' UTC':'')}
+            function iso(ms){return new Date(ms).toISOString().slice(0,19)+'Z'}
+            function cd(ms){return '<span class="cd" data-end="'+iso(ms)+'"></span>'}
             function boosts(h,live){return Object.keys(h.b).map(function(k){return '<span><b>'+d.names[k]+' ×'+h.b[k].toLocaleString(d.text.locale)+'</b>'+(live?' · '+d.text.perChest.replace('{0}',f(d.odds[k]/h.b[k])):'')+'</span>'}).join('')}
             function draw(){
               var now=Date.now(),cur=d.hours.filter(function(h){return now>=h.s&&now<h.e})[0],nxt=d.hours.filter(function(h){return h.s>now}).sort(function(a,b){return a.s-b.s})[0];
-              if(cur){el.className='thour live';el.innerHTML='<div class="tt">⚡ '+d.text.live.replace('{0}',t(cur.e,false))+'</div><div class="tb">'+boosts(cur,true)+'</div>';el.hidden=false}
-              else if(nxt){el.className='thour';el.innerHTML='<div class="tt">'+d.text.next.replace('{0}',t(nxt.s,true))+(nxt.c?'':' <span class="exp">('+d.text.expected+')</span>')+'</div><div class="tb">'+boosts(nxt,false)+'</div>';el.hidden=false}
+              if(cur){el.className='thour live';el.innerHTML='<div class="tt">⚡ '+d.text.live.replace('{0}',t(cur.e,false))+' · '+d.text.endsIn.replace('{0}',cd(cur.e))+'</div><div class="tb">'+boosts(cur,true)+'</div>';el.hidden=false}
+              else if(nxt){el.className='thour';el.innerHTML='<div class="tt">'+d.text.next.replace('{0}',t(nxt.s,true))+' · '+d.text.startsIn.replace('{0}',cd(nxt.s))+(nxt.c?'':' <span class="exp">('+d.text.expected+')</span>')+'</div><div class="tb">'+boosts(nxt,false)+'</div>';el.hidden=false}
               else el.hidden=true;
-              boost(cur);
+              boost(cur);tick();
             }
             // During a Treasure Hour, the odds of the boosted kinds (cards and table) show the boosted rate, in orange.
             function boost(cur){
@@ -753,10 +1106,21 @@ public static class ReportWriter
                     line.innerHTML='<span class="boostv">'+s+'</span>'}
                   else line.innerHTML=line.getAttribute('data-n');
                 }
-                if(pc){if(!pc.hasAttribute('data-n'))pc.setAttribute('data-n',pc.innerHTML);pc.innerHTML=b?'<span class="boostv">1 / '+f(d.odds[k]/b)+'</span>':pc.getAttribute('data-n')}
+                if(pc){if(!pc.hasAttribute('data-n'))pc.setAttribute('data-n',pc.innerHTML);pc.innerHTML=b?'<span class="boostv">'+d.text.oneIn.replace('{0}',f(d.odds[k]/b))+'</span>':pc.getAttribute('data-n')}
               });
             }
-            draw();document.addEventListener('DOMContentLoaded',draw);setInterval(draw,30000);
+            // Every countdown of the page: "3d 11h 58m", with seconds in the last hour, orange in the last day.
+            function tick(){
+              var now=Date.now(),u=d.text.units;
+              [].forEach.call(document.querySelectorAll('.cd'),function(x){
+                var ms=new Date(x.getAttribute('data-end'))-now;
+                if(ms<=0){x.textContent=d.text.now;x.classList.add('done');return}
+                var s=Math.floor(ms/1000),dd=Math.floor(s/86400),h=Math.floor(s%86400/3600),m=Math.floor(s%3600/60),sec=s%60;
+                x.textContent=dd>0?dd+u[0]+' '+h+u[1]+' '+m+u[2]:h>0?h+u[1]+' '+m+u[2]+' '+sec+u[3]:m+u[2]+' '+sec+u[3];
+                x.classList.toggle('soon',ms<86400000);
+              });
+            }
+            draw();document.addEventListener('DOMContentLoaded',draw);setInterval(draw,30000);setInterval(tick,1000);
             })();</script>
             """;
     }
@@ -865,22 +1229,11 @@ public static class ReportWriter
     /// </summary>
     private static string OverlayHud(OverlayView v)
     {
-        string state;
-        if (v.CurrentLive && v.Current is { } cur && cur != "…")
-        {
-            state = Row(L.T("Live", "Live"), cur, "gold", dot: true);
-        }
-        else if (v.CurrentLive)
-        {
-            state = Row(L.T("In a match", "В матче"), "", "", dot: true);
-        }
-        else
-        {
-            state = Row(L.T("Last", "Последний"), v.Last ?? "—", "");
-        }
+        // The last finished match stays during the next one; the red dot next to the total says a match is in progress.
+        var state = Row(L.T("Last", "Последний"), v.Last ?? "—", "");
         var squad = v.Squad != null ? Row(OverlayModel.SquadLabel, v.Squad, "") : "";
-        static string Row(string label, string value, string cls, bool dot = false) =>
-            $"<div class=\"r {cls}\">{(dot ? "<i class=\"dot\"></i>" : "")}<span>{H(label)}</span>{(value.Length > 0 ? $"<span class=\"sep\">•</span><b>{H(value)}</b>" : "")}</div>";
+        static string Row(string label, string value, string cls) =>
+            $"<div class=\"r {cls}\"><span>{H(label)}</span>{(value.Length > 0 ? $"<span class=\"sep\">•</span><b>{H(value)}</b>" : "")}</div>";
         return $$"""
             <!doctype html><html lang="{{L.Code}}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="5">
             <title>{{L.T("Chest overlay", "Оверлей сундуков")}}</title>
@@ -894,10 +1247,10 @@ public static class ReportWriter
             .r{display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:21px;font-stretch:semi-condensed;line-height:1.3}
             .r.gold b{color:#ffd23f}
             .sep{opacity:.9}
-            .dot{width:10px;height:10px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 2px #0b0f18}
+            .dot{width:13px;height:13px;border-radius:50%;background:#ff3b30;box-shadow:0 0 0 2px #0b0f18;flex:none}
             .t{color:#d6beff}.t .star{color:#c49bff}
             </style></head><body>
-            <div class="total{{(v.CurrentLive && v.Current is { } c && c != "…" ? " live" : "")}}"><svg viewBox="0 0 30 26" aria-hidden="true"><rect x="2" y="10" width="26" height="14" rx="2" fill="#ffd23f" stroke="#0b0f18" stroke-width="2.5"/><path d="M2 12 Q15 -2 28 12" fill="#e0a526" stroke="#0b0f18" stroke-width="2.5"/><rect x="12.5" y="12" width="5" height="6" rx="1" fill="#0b0f18"/></svg>{{H(v.Total)}}</div>
+            <div class="total{{(v.CurrentLive && v.Current is { } c && c != "…" ? " live" : "")}}">{{(v.CurrentLive ? "<i class=\"dot\"></i>" : "")}}<svg viewBox="0 0 30 26" aria-hidden="true"><rect x="2" y="10" width="26" height="14" rx="2" fill="#ffd23f" stroke="#0b0f18" stroke-width="2.5"/><path d="M2 12 Q15 -2 28 12" fill="#e0a526" stroke="#0b0f18" stroke-width="2.5"/><rect x="12.5" y="12" width="5" height="6" rx="1" fill="#0b0f18"/></svg>{{H(v.Total)}}</div>
             {{state}}
             {{Row(L.T("Session", "Сессия"), v.Session, "")}}
             {{squad}}

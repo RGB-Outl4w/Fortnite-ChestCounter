@@ -70,6 +70,16 @@ public static class GuiPage
         ["copied"] = L.T("Copied!", "Скопировано!"),
         ["preview"] = L.T("Preview", "Предпросмотр"),
         ["language"] = L.T("Language", "Язык"),
+        ["times"] = L.T("Times shown in", "Часовой пояс"),
+        ["timesHelp"] = L.T("In the report and here: weeks, Treasure Hours, matches.", "В отчёте и здесь: недели, Часы сокровищ, матчи."),
+        ["timesLocal"] = L.T("Local time ({0})", "Местное время ({0})"),
+        ["timesUtc"] = L.T("UTC (game time)", "UTC (время игры)"),
+        ["clock"] = L.T("Clock", "Формат времени"),
+        ["clockAuto"] = L.T("Same as Windows ({0})", "Как в Windows ({0})"),
+        ["clock12"] = L.T("12-hour (10:54 PM)", "12-часовой (10:54 PM)"),
+        ["clock24"] = L.T("24-hour (22:54)", "24-часовой (22:54)"),
+        ["h12"] = L.T("12-hour", "12-часовой"),
+        ["h24"] = L.T("24-hour", "24-часовой"),
         ["tray"] = L.T("Minimize to the notification area", "Сворачивать в область уведомлений"),
         ["trayHelp"] = L.T("Yes: minimizing the window puts it next to the clock, at the bottom right of the taskbar (chest icon, sometimes behind the small ^ arrow). No: it stays in the taskbar like a normal window. Either way, the counter keeps counting.",
             "Да: при сворачивании окно уходит к часам, в правый нижний угол панели задач (значок сундука, иногда за маленькой стрелкой ^). Нет: оно остаётся на панели задач, как обычное окно. В обоих случаях счётчик продолжает считать."),
@@ -87,7 +97,12 @@ public static class GuiPage
         ["editChests"] = L.T("Edit my number of chests", "Изменить число сундуков"),
         ["close"] = L.T("Close", "Закрыть"),
         ["manual"] = L.T("Chests added by hand", "Сундуки, добавленные вручную"),
-        ["manualHelp"] = L.T("The chests opened before using the counter. A negative number removes some, 0 clears it.", "Сундуки, открытые до начала использования счётчика. Отрицательное число вычитает, 0 обнуляет."),
+        ["manualHelp"] = L.T("The chests opened before using the counter. Each number is added to what you already added (a negative number removes some); the cross undoes an addition.", "Сундуки, открытые до начала работы счётчика. Каждое число прибавляется к уже добавленному (отрицательное число убирает); крестик отменяет добавление."),
+        ["manualTotal"] = L.T("Added by hand: {0}", "Добавлено вручную: {0}"),
+        ["addBtn"] = L.T("Add", "Добавить"),
+        ["removeEntry"] = L.T("Undo this addition", "Отменить это добавление"),
+        ["thisWeek"] = L.T("Opened this week", "Открыты на этой неделе"),
+        ["thisWeekHelp"] = L.T("also count for the weekly treasures of week {0}", "учитываются и для еженедельных сокровищ недели {0}"),
         ["estimate"] = L.T("Or estimate from your matches", "Или оценить по матчам"),
         ["estimateHelp"] = L.T("Number of Battle Royale matches this season, in Fortnite: Career → Stats.", "Число матчей «Королевской битвы» в этом сезоне, в Fortnite: Карьера → Статистика."),
         ["career"] = L.T("Matches played", "Сыграно матчей"),
@@ -183,6 +198,16 @@ public static class GuiPage
         .hidden{display:none!important}
         footer{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px dashed var(--gold);padding-top:12px;color:var(--muted);font-size:13px}
         .estimate{margin-top:8px;font-weight:600}
+        .mtotal{font-weight:600;margin-bottom:6px}
+        .mweek{display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer}
+        .mweek b{white-space:nowrap}
+        .mweek span{color:var(--cmuted);font-size:13px}
+        .mhist{list-style:none;margin:10px 0 0;padding:0;max-height:190px;overflow:auto}
+        .mhist li{display:flex;align-items:center;gap:12px;padding:5px 2px;border-top:1px solid var(--line)}
+        .mhist b{min-width:70px;text-align:right}
+        .mhist span{flex:1;color:var(--cmuted);font-size:13px}
+        .mhist .mx{border:0;background:none;color:var(--cmuted);font-size:18px;line-height:1;cursor:pointer;padding:2px 7px;border-radius:4px}
+        .mhist .mx:hover{color:var(--warn);background:rgba(163,54,31,.1)}
         .notice{position:relative;display:flex;gap:12px;align-items:flex-start;border-left:6px solid var(--gold)}
         .notice.warning{border-left-color:#c8412f;background:#fbe9d0}
         .notice .ni{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 14px "Segoe UI",system-ui,sans-serif;background:var(--gold);color:#fff;margin-top:1px}
@@ -217,7 +242,7 @@ public static class GuiPage
           <button type="button" id="wmin"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M0 5.5h10" stroke="currentColor" stroke-width="1.1"/></svg></button>
           <button type="button" id="wmax"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><rect id="wmaxicon" x=".55" y=".55" width="8.9" height="8.9" fill="none" stroke="currentColor" stroke-width="1.1"/><path id="wresicon" d="M2.5 2.5V.55h6.95v6.95H7.5M.55 2.5h6.95v6.95H.55z" fill="none" stroke="currentColor" stroke-width="1.1" style="display:none"/></svg></button>
           <button type="button" id="wclose" class="x"><svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M.5.5l9 9M9.5.5l-9 9" stroke="currentColor" stroke-width="1.2"/></svg></button>
-        </div></div><div id="scroll"><main><div id="app"><p class="note">…</p></div><section id="reportPane" class="hidden"><iframe id="rep" title="Report" scrolling="no"></iframe></section><div id="foot"></div></main></div>
+        </div></div><div id="scroll"><main><div id="app"><p class="note">…</p></div><section id="activityPane" class="hidden"><h2 class="pirate"></h2><div class="card log"></div></section><section id="reportPane" class="hidden"><iframe id="rep" title="Report" scrolling="no"></iframe></section><div id="foot"></div></main></div>
         <dialog id="dlg" aria-labelledby="dlgT"><div class="dhead"><h2 class="pirate" id="dlgT"></h2><button type="button" class="dclose" id="dlgX">×</button></div><div id="dlgB"></div></dialog>
         <script>
         const TOKEN='__TOKEN__';let S=null,tab=(()=>{const h=location.hash.slice(1);if(['home','report','overlay','settings','help'].includes(h))return h;try{return localStorage.getItem('cc-gui-tab')||'home'}catch(e){return 'home'}})(),estimate=null,stopped=false,copied=false;
@@ -232,7 +257,7 @@ public static class GuiPage
         const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
         const fmt=(s,...a)=>a.reduce((r,v,i)=>r.replace('{'+i+'}',v),s);
         async function api(action,value){const r=await fetch('/api/action',{method:'POST',headers:{'X-Token':TOKEN,'Content-Type':'application/json'},body:JSON.stringify({action,value})});const j=await r.json();await refresh(true);return j.result}
-        async function refresh(force){if(stopped)return;try{const r=await fetch('/api/state',{headers:{'X-Token':TOKEN}});S=await r.json();render(force)}catch(e){if(S){$('#app').innerHTML='<div class="card">'+esc(S.txt.offline)+'</div>'}}}
+        async function refresh(force){if(stopped)return;try{const r=await fetch('/api/state',{headers:{'X-Token':TOKEN}});S=await r.json();render(force)}catch(e){if(S){$('#app').innerHTML='<div class="card">'+esc(S.txt.offline)+'</div>';appHtml=null;$('#activityPane').classList.add('hidden')}}}
         function busy(){const a=document.activeElement;return a&&a.closest&&a.closest('#view')&&/INPUT|SELECT|TEXTAREA/.test(a.tagName)}
         function busyHeader(){const a=document.activeElement;return a&&a.closest&&a.closest('#hdr')&&a.tagName==='SELECT'}
         function sw(id,on,act){return `<label class="switch"><input type="checkbox" id="${id}" ${on?'checked':''} onchange="api('${act}',this.checked)"><span></span></label>`}
@@ -244,13 +269,39 @@ public static class GuiPage
           const head=`<header><div class="brand"><svg width="44" height="44" viewBox="0 0 56 56" aria-hidden="true"><rect x="6" y="20" width="44" height="28" rx="4" fill="#7a4a1e" stroke="#e7b440" stroke-width="3"/><path d="M6 26 Q28 4 50 26" fill="#965d27" stroke="#e7b440" stroke-width="3"/><rect x="24" y="24" width="8" height="10" rx="2" fill="#e7b440"/></svg><div><h1 class="pirate">${esc(S.appName)}</h1><div class="who">${S.profiles.length>1?`<select aria-label="${esc(T.profile)}" title="${esc(T.profile)}" onchange="api('profile',this.value)">${S.profiles.map(p=>`<option value="${esc(p.key)}" ${p.key===S.profileKey?'selected':''}>${esc(p.name)} (${esc(p.matches)})</option>`).join('')}</select>`:`<span>${esc(S.player||'')}</span>`}<span>v${esc(S.version)}</span></div></div></div><span class="pill ${S.status.kind}"><i></i>${esc(S.status.text)}</span></header>
           <nav>${['home','report','overlay','settings','help'].map(t=>`<button class="${t===tab?'on':''}" onclick="setTab('${t}')">${esc(T[t])}</button>`).join('')}</nav>`;
           if(!force&&busyHeader())return;
-          if(!force&&busy()){$('#hdr').innerHTML=head;return}
+          if(!force&&busy()){$('#hdr').innerHTML=head;appHtml=null;return}
+          // A click in progress (button pressed, not released yet): rebuilding now would replace its button and the click
+          // would be lost. The next refresh, 2 s later, catches up.
+          if(!force&&pressedAt&&Date.now()-pressedAt<3000)return;
           let v='';
           if(tab==='home')v=home(T);else if(tab==='overlay')v=overlay(T);else if(tab==='settings')v=settings(T);else if(tab==='help')v=help(T);
-          $('#app').innerHTML=`<div id="hdr">${head}</div>${notices(T)}<div id="view">${v}</div>`;
+          // Rebuilt only when something changed: the buttons stay the same elements between two refreshes.
+          const app=`<div id="hdr">${head}</div>${notices(T)}<div id="view">${v}</div>`;
+          if(force||app!==appHtml){$('#app').innerHTML=app;appHtml=app}
           // In the counter's own window the close button asks and stops it: no "quit" button needed.
-          $('#foot').innerHTML=S.settings.windowed?`<footer><span>${esc(T.footerWindow)}</span></footer>`:`<footer><span>${esc(T.footer)}</span><button class="b danger" onclick="quit()">${esc(T.quit)}</button></footer>`;
-          showReport();winTitles();
+          const foot=S.settings.windowed?`<footer><span>${esc(T.footerWindow)}</span></footer>`:`<footer><span>${esc(T.footer)}</span><button class="b danger" onclick="quit()">${esc(T.quit)}</button></footer>`;
+          if(force||foot!==footHtml){$('#foot').innerHTML=foot;footHtml=foot}
+          showActivity(T);showReport();winTitles();
+        }
+        // pressedAt: when the mouse button went down (0 once released). Forgotten after 3 s in case the release was
+        // missed (outside the window), so the page never stops refreshing.
+        let appHtml=null,footHtml=null,pressedAt=0;
+        document.addEventListener('pointerdown',()=>{pressedAt=Date.now()},true);
+        ['pointerup','pointercancel'].forEach(t=>document.addEventListener(t,()=>{pressedAt=0},true));
+        let activityHtml=null;
+        function showActivity(T){
+          const pane=$('#activityPane');
+          pane.classList.toggle('hidden',tab!=='home');
+          if(tab!=='home')return;
+          pane.querySelector('h2').textContent=T.activity;
+          // Keep the scrolling element mounted while new log entries arrive.
+          const log=pane.querySelector('.log');
+          const html=S.activity.length?S.activity.map(l=>l.map(s=>`<span class="${s.c}">${esc(s.t)}</span>`).join('')).join('\n'):esc(T.noActivity);
+          if(activityHtml===html)return;
+          const top=log.scrollTop;
+          log.innerHTML=html;
+          log.scrollTop=top;
+          activityHtml=html;
         }
         // The report, in the window: loaded once, then again only when the counter rewrote it (new match, setting...).
         let repStamp=null,repObs=null;
@@ -277,7 +328,7 @@ public static class GuiPage
           if(S.progress)h+=`<div class="card"><b>${esc(T.analyzing)} ${S.progress.done} / ${S.progress.total}</b><div class="bar"><i style="width:${Math.round(100*S.progress.done/Math.max(1,S.progress.total))}%"></i></div></div>`;
           if(S.whatsNew&&S.whatsNew.length)h+=`<div class="card"><h2 class="pirate" style="color:#7a4a1e">${esc(fmt(T.whatsNew,S.version))}</h2><ul>${S.whatsNew.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><button class="b main" onclick="api('dismissWhatsNew')">${esc(T.ok)}</button></div>`;
           if(S.update)h+=`<div class="card"><h2 class="pirate">${esc(fmt(T.newVersion,S.update.version))}</h2><ul>${S.update.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul><button class="b main" onclick="api('installUpdate')">${esc(T.install)}</button></div>`;
-          h+=`<section class="tiles"><div class="tile hero"><button type="button" class="editbtn" onclick="openManual()" title="${esc(T.editChests)}" aria-label="${esc(T.editChests)}">__PENCIL__</button><div class="l">${esc(T.total)}</div><div class="v num">${esc(S.total)}</div><div class="l">${esc(T.totalSub)}${S.manual?'<br>'+esc(fmt(T.byHand,S.manual)):''}</div></div>
+          h+=`<section class="tiles"><div class="tile hero"><button type="button" class="editbtn" onclick="openManual()" title="${esc(T.editChests)}" aria-label="${esc(T.editChests)}">__PENCIL__</button><div class="l">${esc(T.total)}</div><div class="v num">${esc(S.total)}</div><div class="l">${esc(T.totalSub)}${S.manual?'<br>'+esc(fmt(T.byHand,S.manualText.replace('+',''))):''}</div></div>
             <div class="tile"><div class="v num">${esc(S.session)}</div><div class="l">${esc(T.session)} · ${esc(S.sessionMatches)} ${esc(T.matches)}</div></div>
             <div class="tile"><div class="v num">${esc(S.last?S.last.chests:'—')}</div><div class="l">${esc(T.last)}${S.last?'<br>'+esc(S.last.when)+' · '+esc(S.last.mode):''}</div></div>
             ${S.squad?`<div class="tile"><div class="v num">${esc(S.squad.total)}</div><div class="l">${esc(T.squad)}<span class="badge" title="${esc(T.inaccurateWhy)}">${esc(T.inaccurate)}</span><br>${esc(fmt(T.squadSub,S.squad.team))}</div></div>`:''}
@@ -285,7 +336,7 @@ public static class GuiPage
           h+=`<div class="actions"><button class="b main" onclick="setTab('report')">${esc(T.openReport)}</button>`;
           if(S.overlay.running)h+=`<button class="b" onclick="api('toggleOverlayVisible')">${esc(S.overlay.visible?T.hideOverlay:T.showOverlay)}</button><button class="b" onclick="api('toggleOverlayLock')">${esc(S.overlay.locked?T.unlock:T.lock)}</button>`;
           if(!S.update&&S.updatesOn)h+=`<button class="b" onclick="api('checkUpdate')">${esc(T.checkUpdate)}</button>`;
-          h+=`</div><section><h2 class="pirate">${esc(T.activity)}</h2><div class="card log">${S.activity.length?S.activity.map(l=>l.map(s=>`<span class="${s.c}">${esc(s.t)}</span>`).join('')).join('\n'):esc(T.noActivity)}</div></section>`;
+          h+='</div>';
           return h;
         }
         function overlay(T){
@@ -301,6 +352,8 @@ public static class GuiPage
         function settings(T){
           const s=S.settings;
           let h=`<div class="card">${row(esc(T.language),'',sel('language',s.language,s.languages))}
+            ${row(esc(T.times),esc(T.timesHelp),sel('timeZone',s.timeZone,[['local',fmt(T.timesLocal,s.localZone)],['utc',T.timesUtc]]))}
+            ${row(esc(T.clock),'',sel('clockFormat',s.clockFormat,[['auto',fmt(T.clockAuto,s.windowsClock==='24'?T.h24:T.h12)],['12',T.clock12],['24',T.clock24]]))}
             ${S.profiles.length>1?row(esc(T.profile),'',sel('profile',S.profileKey,S.profiles.map(p=>[p.key,p.name+' ('+p.matches+' · '+p.chests+')']))):''}
             ${s.windowed?row(esc(T.tray),esc(T.trayHelp),sw('tr',s.minimizeToTray,'minimizeToTray')):''}
             ${s.canStartWithFortnite?row(esc(T.withFortnite),esc(T.withFortniteHelp),sw('wf',s.startWithFortnite,'startWithFortnite')):''}
@@ -309,21 +362,36 @@ public static class GuiPage
           return h;
         }
         // Chests added by hand (and the estimate from the Career matches): p = 's' in the settings, 'd' in the edit box.
+        // The box starts empty each time: the number typed is added to what was already added, and each addition can be
+        // undone with its cross (issue #27).
         function manualForm(T,p){
+          const hist=S.manualHistory||[];
           return `<p class="note" style="color:var(--cmuted);margin-top:0">${esc(T.manualHelp)}</p>
-            <div class="actions"><input type="number" id="${p}manual" value="${S.manual}" step="1" aria-label="${esc(T.manual)}"><button class="b main" onclick="saveManual('${p}',parseInt($('#${p}manual').value||'0',10))">${esc(T.save)}</button></div>
+            <div class="mtotal">${esc(fmt(T.manualTotal,S.manualText))}</div>
+            <div class="actions"><input type="number" id="${p}manual" step="1" placeholder="0" aria-label="${esc(T.manual)}" onkeydown="if(event.key==='Enter')addManual('${p}')"><button class="b main" onclick="addManual('${p}')">${esc(T.addBtn)}</button></div>
+            ${S.manualWeek?`<label class="mweek"><input type="checkbox" id="${p}week"><b>${esc(T.thisWeek)}</b><span>${esc(fmt(T.thisWeekHelp,S.manualWeek))}</span></label>`:''}
+            ${hist.length?`<ul class="mhist">${hist.map(e=>`<li><b class="num">${esc(e.chests)}</b><span>${esc([e.what,e.when].filter(Boolean).join(' · '))}</span><button type="button" class="mx" title="${esc(T.removeEntry)}" aria-label="${esc(T.removeEntry)}" onclick="removeManual('${p}','${esc(e.id)}')">×</button></li>`).join('')}</ul>`:''}
             <div class="t" style="margin-top:16px;font-weight:600">${esc(T.estimate)}</div><p class="note" style="color:var(--cmuted)">${esc(T.estimateHelp)}</p>
             <div class="actions"><input type="number" id="${p}career" min="0" placeholder="${esc(T.career)}" aria-label="${esc(T.career)}"><button class="b" onclick="doEstimate('${p}')">${esc(T.compute)}</button></div>
             <div class="estimate" id="${p}est">${estimate&&estimate.p===p?estimateHtml(T,p):''}</div>`;
         }
-        function estimateHtml(T,p){if(estimate.error)return esc(estimate.error);return esc(estimate.text)+`<div class="actions" style="margin-top:8px"><button class="b main" onclick="saveManual('${p}',${estimate.chests})">${esc(fmt(T.add,estimate.chestsText))}</button></div>`}
+        function estimateHtml(T,p){if(estimate.error)return esc(estimate.error);return esc(estimate.text)+`<div class="actions" style="margin-top:8px"><button class="b main" onclick="addEstimate('${p}')">${esc(fmt(T.add,estimate.chestsText))}</button></div>`}
         async function doEstimate(p){const r=await api('estimate',parseInt($('#'+p+'career').value||'0',10));estimate=Object.assign({p},r);const e=$('#'+p+'est');if(e)e.innerHTML=estimateHtml(S.txt,p)}
-        async function saveManual(p,n){estimate=null;await api('manualChests',n);if(p==='d')$('#dlg').close();else render(true)}
+        async function addManual(p){const i=$('#'+p+'manual'),w=$('#'+p+'week'),n=parseInt(i&&i.value||'0',10);if(!n){if(i)i.focus();return}await api('manualAdd',{chests:n,thisWeek:!!(w&&w.checked)});redrawManual(p)}
+        async function addEstimate(p){if(!estimate||estimate.error)return;await api('manualEstimate',{chests:estimate.chests,career:estimate.career});redrawManual(p)}
+        async function removeManual(p,id){await api('manualRemove',id);redrawManual(p)}
+        // After a change the box stays open, with the new total and history, ready for the next number.
+        function redrawManual(p){estimate=null;if(p!=='d'){render(true);return}$('#dlgB').innerHTML=manualForm(S.txt,'d');const i=$('#dmanual');if(i)i.focus()}
         // The edit box of "chests in total" (home tab, and the report's pencil through a message).
         function openManual(){const T=S.txt,d=$('#dlg');estimate=null;$('#dlgT').textContent=T.editChests;$('#dlgB').innerHTML=manualForm(T,'d');$('#dlgX').setAttribute('aria-label',T.close);if(!d.open)d.showModal();const i=$('#dmanual');if(i){i.focus();i.select()}}
         $('#dlgX').onclick=()=>$('#dlg').close();
         $('#wmin').onclick=()=>winBtn('min');$('#wmax').onclick=()=>winBtn('max');$('#wclose').onclick=()=>winBtn('close');
-        $('#dlg').addEventListener('click',e=>{if(e.target.id==='dlg')$('#dlg').close()});
+        // A click on the dimmed backdrop closes the box, only when it starts there too: selecting the number with the mouse
+        // and releasing the button outside the box must not close it.
+        let dlgDownOut=false;
+        function dlgOutside(e){const r=$('#dlg').getBoundingClientRect();return e.target.id==='dlg'&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)}
+        $('#dlg').addEventListener('pointerdown',e=>{dlgDownOut=dlgOutside(e)});
+        $('#dlg').addEventListener('click',e=>{if(dlgDownOut&&dlgOutside(e))$('#dlg').close();dlgDownOut=false});
         window.addEventListener('message',e=>{if(e.origin===location.origin&&e.data&&e.data.cc==='editChests'&&S)openManual()});
         async function copyObs(){await api('copyObsPath');copied=true;render(true);setTimeout(()=>{copied=false;render(true)},2000)}
         function help(T){
@@ -331,7 +399,7 @@ public static class GuiPage
           ${S.canUninstall?`<section><h2 class="pirate">${esc(T.uninstall)}</h2><div class="card"><span class="path">${esc(S.paths.data)}</span>
           <div class="actions"><button class="b danger" onclick="uninstall(false)">${esc(T.uninstall)} · ${esc(T.keepData)}</button><button class="b danger" onclick="uninstall(true)">${esc(T.uninstall)} · ${esc(T.deleteData)}</button></div></div></section>`:''}`;
         }
-        function closedView(){stopped=true;$('#app').innerHTML='<div class="card">'+esc(S.txt.closed)+'</div>';$('#foot').innerHTML='';$('#reportPane').classList.add('hidden')}
+        function closedView(){stopped=true;$('#app').innerHTML='<div class="card">'+esc(S.txt.closed)+'</div>';$('#foot').innerHTML='';appHtml=footHtml=null;$('#activityPane').classList.add('hidden');$('#reportPane').classList.add('hidden')}
         async function uninstall(all){if(!confirm(S.txt.uninstallConfirm))return;await api('uninstall',all);closedView()}
         async function quit(){if(!confirm(S.txt.quitConfirm))return;try{await api('quit')}catch(e){}closedView()}
         refresh(true);setInterval(()=>refresh(false),2000);

@@ -68,8 +68,52 @@ public static class L
         return $"{n}{suffix}";
     }
 
-    /// <summary>Short date + time of a match ("5 Nov 22:54" / "05.11 22:54").</summary>
-    public static string DateTimeShort(DateTime d) => d.ToString(Ru ? "dd.MM HH:mm" : "d MMM HH:mm", Culture);
+    // ---- Times shown to the player (Settings): local time or UTC, 12- or 24-hour clock ------------------
+
+    /// <summary>Show times in UTC instead of the PC's time zone.</summary>
+    public static bool UtcTimes { get; set; }
+
+    /// <summary>"auto" (the Windows setting), "12" or "24".</summary>
+    public static string ClockFormat { get; set; } = "auto";
+
+    /// <summary>The Windows setting: 24-hour unless the short time pattern has an "h" (12-hour) in it.</summary>
+    public static bool WindowsClock24 => !CultureInfo.CurrentCulture.DateTimeFormat.ShortTimePattern.Contains('h');
+
+    public static bool Clock24 => ClockFormat switch { "12" => false, "24" => true, _ => WindowsClock24 };
+
+    /// <summary>A UTC moment as it is shown: in UTC or in the PC's time zone.</summary>
+    public static DateTime Shown(DateTime utc)
+    {
+        var u = utc.Kind == DateTimeKind.Local ? utc.ToUniversalTime() : DateTime.SpecifyKind(utc, DateTimeKind.Utc);
+        return UtcTimes ? u : u.ToLocalTime();
+    }
+
+    /// <summary>" UTC" after a time shown in UTC, nothing in local time.</summary>
+    public static string Zone => UtcTimes ? " UTC" : "";
+
+    /// <summary>The .NET pattern of a time of day ("HH:mm" / "h:mm tt"), with seconds or not.</summary>
+    public static string TimePattern(bool seconds = false) => Clock24 ? (seconds ? "HH:mm:ss" : "HH:mm") : (seconds ? "h:mm:ss tt" : "h:mm tt");
+
+    /// <summary>A time of day of a moment already converted by <see cref="Shown"/> ("22:54" / "10:54 PM", + " UTC").</summary>
+    public static string Clock(DateTime shown, bool seconds = false) => shown.ToString(TimePattern(seconds), Culture) + Zone;
+
+    /// <summary>Time stamp of the activity log, now ("[22:54:07]").</summary>
+    public static string Stamp => $"[{Clock(Shown(DateTime.UtcNow), seconds: true)}]";
+
+    /// <summary>The PC's time zone as an offset from UTC ("UTCв€’8", "UTC+5:30").</summary>
+    public static string LocalOffset
+    {
+        get
+        {
+            var o = TimeZoneInfo.Local.GetUtcOffset(DateTime.UtcNow);
+            var sign = o < TimeSpan.Zero ? "в€’" : "+";
+            o = o.Duration();
+            return o == TimeSpan.Zero ? "UTC" : $"UTC{sign}{o.Hours}{(o.Minutes != 0 ? $":{o.Minutes:00}" : "")}";
+        }
+    }
+
+    /// <summary>Short date + time of a match ("5 Nov 10:54 PM" / "05.11 22:54"), of a moment already converted by <see cref="Shown"/>.</summary>
+    public static string DateTimeShort(DateTime shown) => shown.ToString((Ru ? "dd.MM " : "d MMM ") + TimePattern(), Culture) + Zone;
 
     // Keys stored in data.json -> display names.
     private static readonly Dictionary<string, (string En, string Ru)> Names = new(StringComparer.OrdinalIgnoreCase)

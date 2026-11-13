@@ -36,7 +36,7 @@ Fortnite can record a **replay file** of every match on your PC. Chest Counter r
 > [!IMPORTANT]
 > **Replays must be turned on in Fortnite**: *Settings → Game → Replays → Record Replays: **On***. Without replays, the tool has nothing to read.
 
-Because Fortnite only writes the replay's decryption key when the match ends, chests are counted **a few seconds after each match**, not during it. While you play, the overlay shows **● In a match**.
+Because Fortnite only writes the replay's decryption key when the match ends, chests are counted **a few seconds after each match**, not during it. While you play, a **red dot** next to the overlay's total shows that a match is in progress.
 
 ## Getting started
 
@@ -60,7 +60,7 @@ Five tabs: **Home**, **Report**, **Overlay**, **Settings** and **Help**. At the 
 - **Home**: your total, this session, your last match and your treasures, the buttons of the overlay and of the updates, and the activity (each match counted, or why one was skipped).
 - **Report**: all your statistics (see below).
 - **Overlay**: the in-game overlay and the page for OBS.
-- **Settings**: language, notification area, open with Fortnite, updates, replays folder.
+- **Settings**: language, times (local or UTC, 12- or 24-hour clock), notification area, open with Fortnite, updates, replays folder.
 - **Help**: how it works, your data folder, the error log, a link to report a problem, and **Uninstall**.
 
 <p align="center"><img src="docs/home-en.png" alt="Home tab" width="820"></p>
@@ -69,7 +69,7 @@ The close button asks before stopping the counter (a match played while it is cl
 
 ### Chests opened before the counter
 
-Click the **pencil** of *Chests in total* (Home or Report) to add the chests you opened before using the counter. Don't know how many? Enter the number of matches shown in Fortnite (*Career → Stats*): the counter multiplies the matches it has not seen by your average. A negative number removes chests, 0 clears the addition.
+Click the **pencil** of *Chests in total* (Home or Report) to add the chests you opened before using the counter. Each number you type is added to what you already added (a negative number removes some), and the list below shows every addition, with a **×** to undo it. Tick **Opened this week** for chests of the current week: they then count in this week's chances too. Don't know how many? Enter the number of matches shown in Fortnite (*Career → Stats*): the counter multiplies the matches it has not seen by your average (a new estimate replaces the previous one).
 
 <p align="center"><img src="docs/edit-en.png" alt="Editing the number of chests" width="820"></p>
 
@@ -80,6 +80,8 @@ Click the **pencil** of *Chests in total* (Home or Report) to add the chests you
 | Setting | What it does |
 |---|---|
 | Language | English or Russian. |
+| Times shown in | Local time (default) or UTC, for the weeks, Treasure Hours and matches. |
+| Clock | Same as Windows (default), 12-hour or 24-hour. |
 | Minimize to the notification area | Yes: minimizing the window puts it next to the clock, at the bottom right of the taskbar (chest icon, sometimes behind the small ^ arrow). No (default): it stays in the taskbar like a normal window. |
 | Open with Fortnite | See below. |
 | Updates | Offered (default), installed automatically or off. |
@@ -94,8 +96,8 @@ With this option, a tiny invisible process starts with Windows and checks every 
 
 Just the figures, outlined like the game's own, with no background: put it under the minimap and it blends into the HUD.
 
-- **Big**: your **total** chests, with the golden chest.
-- **Last**: the chests of your last match. During a match: **● In a match** (its chests are counted at the end).
+- **Big**: your **total** chests, with the golden chest. During a match, a **red dot** shows next to it (the match's chests are counted at the end).
+- **Last**: the chests of your last match, still shown during the next one.
 - **Session**: the chests since the counter was started.
 - **★**: your treasures.
 
@@ -116,7 +118,7 @@ The **Report** tab updates by itself after each match: total, matches, average, 
 
 <p align="center"><img src="docs/report-en.png" alt="Report tab" width="820"></p>
 
-- **Your chances** (open): the chance of having obtained the **gold outfit** or the **Pirate Shop Access** at least once with all your chests, and for each other kind of treasure. The odds are those published by Epic Games. During a **Treasure Hour**, chests count with their boosted odds, the banner shows the current or next one, and the odds of the boosted treasures change live (in orange).
+- **Your chances** (open): the chance that each treasure has already dropped for you at least once, with a word for it (*Unlikely*, *Likely*, *Almost certain*…). A chest only gives the treasure of its week, so the **weekly** ones (gold outfit, vehicle & decal, pickaxe or back bling, jam track, loading screen) count this week's chests, with their picture and a countdown until they leave; the **Pirate Shop Access** and gizmos count the whole hunt. The odds are those published by Epic Games. During a **Treasure Hour**, chests count with their boosted odds, the banner shows the current or next one with a countdown, and the odds of the boosted treasures change live (in orange).
 - **They got it in your matches** (experimental): the Pirate Shop Access and gold outfits that other players got near you.
 - **Your collection**: this season's treasures, week by week, to tick what you obtained. A treasure from a golden chest seen in your replays is ticked by itself.
 - **Treasures found** and **Latest matches**: every treasure and every match, 10 at a time.

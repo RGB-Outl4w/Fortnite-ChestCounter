@@ -63,3 +63,5 @@ At most 10 notices are read. Remove old ones once their `to` date is past.
 - `treasureHours[]`: `start`, `end` (24 h max), `boosts` (kind → multiplier, 1 to 100), `confirmed` (false shows
   "expected, not announced yet").
 - `odds[]`: `kind`, `oneIn` (1 in N per chest), `weekly`.
+- `sources` (optional): `odds` (where Epic Games published the odds), `treasureHours` (where the Treasure Hour times
+  come from). https links, shown under "Your chances" in the report.
