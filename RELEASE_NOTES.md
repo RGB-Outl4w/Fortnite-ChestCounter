@@ -1,27 +1,33 @@
-**English** · Download **`ChestCounter.exe`** below, run it, follow the short setup. Nothing to install. Already using it? Replace your exe with this one: your history and settings are kept.
+**English** · Download **`ChestCounter.exe`** below and run it. Nothing to install. Already using it? Click **Install** on the home tab: your history and settings are kept.
 
-> **Turn on replays in Fortnite first**: *Settings → Game → Replays → Record Replays: On*. The tool only reads these replay files: no game modification, no access to the game's memory. Its only network access is the check for a new version on GitHub (can be turned off).
+> **Turn on replays in Fortnite first**: *Settings → Game → Replays → Record Replays: On*. The tool only reads these replay files: no game modification, no access to the game's memory. It only goes online to GitHub: the check for a new version (can be turned off), the treasure hunt data and, once, the treasure pictures.
 
-**What's new in 1.5.0**
-- **Russian** is now available. French and Spanish are removed: if you used one of them, the counter asks for your language again
-- **Replays are no longer lost to a passing problem**: a replay that cannot be read because the file is busy or the PC is under load is tried again, instead of being marked unreadable
-- **A stuck analysis no longer disturbs the next one**
-- **Safer updates**: an update without a published checksum is refused
-- This version updates from this repository (RGB-Outl4w), no longer from the original project
+**What's new in 1.6.0**
+- Brings the original project's 1.5.0, in English and Russian:
+- **A real window** instead of the console: Home, Report, Overlay, Settings and Help tabs, with a welcome card instead of the setup questions
+- **Add the chests opened before the counter**: the pencil of *Chests in total*, or an estimate from your Career matches
+- **Squad total**, **Your chances** of getting the gold outfit or the Pirate Shop Access, **your collection** of treasures and the **Treasure Hours**
+- **Only the season's Battle Royale is counted**; closed chests you break without touching them now count; matches where Fortnite did not record what your vehicle destroyed are flagged
+- **Uninstall** in the Help tab, **OBS overlay** in the style you chose
+- The treasure hunt data (weeks, prizes, odds) comes from the original project, updated every week. Prize names are in English
+- The replays still on your PC are analyzed again
 
-Windows may show *"Windows protected your PC"* (unsigned exe): *More info → Run anyway*.
+Windows may show *"Windows protected your PC"* (unsigned exe): *More info → Run anyway*. The window needs Microsoft Edge WebView2 (built into Windows 11); without it, the same page opens in your browser.
 
 ---
 
-**Русский** · Скачай **`ChestCounter.exe`** ниже, запусти и пройди короткую настройку. Устанавливать ничего не нужно. Уже пользуешься? Замени свой exe этим: история и настройки сохранятся.
+**Русский** · Скачай **`ChestCounter.exe`** ниже и запусти. Устанавливать ничего не нужно. Уже пользуешься? Нажми **Установить** на главной вкладке: история и настройки сохранятся.
 
-> **Сначала включи запись повторов в Fortnite**: *Настройки → Игра → Повторы → Записывать повторы: Вкл.* Программа только читает файлы повторов: никаких изменений игры, никакого доступа к памяти игры. Единственное обращение к сети — проверка новой версии на GitHub (можно отключить).
+> **Сначала включи запись повторов в Fortnite**: *Настройки → Игра → Повторы → Записывать повторы: Вкл.* Программа только читает файлы повторов: никаких изменений игры, никакого доступа к памяти игры. Она обращается только к GitHub: проверка новой версии (можно отключить), данные охоты за сокровищами и, один раз, изображения сокровищ.
 
-**Что нового в 1.5.0**
-- Добавлен **русский язык**. Французский и испанский удалены: если ты пользовался одним из них, счётчик снова спросит язык
-- **Повторы больше не теряются из-за временной проблемы**: повтор, который не удалось прочитать, потому что файл занят или ПК загружен, читается повторно, а не помечается нечитаемым
-- **Зависший анализ больше не мешает следующему**
-- **Более безопасные обновления**: обновление без опубликованной контрольной суммы отклоняется
-- Эта версия обновляется из этого репозитория (RGB-Outl4w), а не из исходного проекта
+**Что нового в 1.6.0**
+- Версия 1.5.0 исходного проекта, на английском и русском:
+- **Настоящее окно** вместо консоли: вкладки «Главная», «Отчёт», «Оверлей», «Настройки» и «Справка», приветственная карточка вместо вопросов настройки
+- **Сундуки, открытые до счётчика**: карандаш у *Всего сундуков* или оценка по матчам из «Карьеры»
+- **Итог отряда**, **твои шансы** получить золотой наряд или доступ в пиратскую лавку, **коллекция** сокровищ и **Часы сокровищ**
+- **Считается только «Королевская битва» текущего сезона**; закрытые сундуки, сломанные без открытия, теперь считаются; матчи, где Fortnite не записал, что разрушил твой транспорт, помечаются
+- **Удаление** во вкладке «Справка», **оверлей для OBS** в выбранном стиле
+- Данные охоты за сокровищами (недели, призы, шансы) берутся из исходного проекта и обновляются каждую неделю. Названия призов — на английском
+- Повторы, оставшиеся на ПК, анализируются заново
 
-Windows может показать *«Система Windows защитила ваш компьютер»* (exe без подписи): *Подробнее → Выполнить в любом случае*.
+Windows может показать *«Система Windows защитила ваш компьютер»* (exe без подписи): *Подробнее → Выполнить в любом случае*. Окну нужен Microsoft Edge WebView2 (встроен в Windows 11); без него та же страница открывается в браузере.

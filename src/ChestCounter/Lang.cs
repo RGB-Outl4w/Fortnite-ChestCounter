@@ -85,8 +85,7 @@ public static class L
         ["Caisse de nourriture"] = ("Food box", "Ящик с едой"),
         ["Autre conteneur"] = ("Other container", "Другой контейнер"),
         ["Trésor"] = ("Treasure", "Сокровище"),
-        ["Trésor (type inconnu)"] = ("Treasure gizmo", "Устройство для сокровищ"),
-        ["Gizmo de trésor"] = ("Treasure gizmo", "Устройство для сокровищ"),
+        ["Trésor (type inconnu)"] = ("Treasure (unknown type)", "Сокровище (тип неизвестен)"),
         ["Feu d'artifice doré"] = ("Golden firework", "Золотой фейерверк"),
         ["Extracteur portable"] = ("Portable extractor", "Портативный экстрактор"),
         ["Localisateur d'esprit"] = ("Sprite locator", "Локатор духов"),
@@ -101,6 +100,7 @@ public static class L
         if (stored != null)
         {
             stored = ChestKinds.Canonical(stored); // older name of a kind
+            stored = TreasureNames.Canonical(stored);
         }
         if (string.IsNullOrEmpty(stored) || !Names.TryGetValue(stored, out var t))
         {
